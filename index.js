@@ -16,6 +16,10 @@ module.exports = function(url, opts, callback) {
 		opts = {};
 	}
 
+	if (!callback) {
+		callback = function() {};
+	}
+
 	if (opts.dir) {
 		if (opts.dir.slice(-1) != "/") {
 			opts.dir += "/";
