@@ -1,83 +1,96 @@
 // Download a webpage and cache it locally for future retrieval
-// moduled after the Github.com/UnitedStates utils.py download function
+// modeled after the github.com/UnitedStates utils.py download function
 
 var request = require('request'),
 	fs = require('fs'),
-	mkdirp = require('mkdirp');
+	path = require('path'),
+	urlparse = require('url'),
+	mkdirp = require('mkdirp'),
+	log = require('npmlog');
 
-var downcache = module.exports = exports;
-
-var isVerbose = false;
+//process.setMaxListeners(20);
 
 // try to find a page in cache. If not found, retrieve and cache
+
+/* OPTIONS */
+/*
+force: Ignore presence of cache and call live
+nocache: Don't cache the raw response. Then question why you are using this module.
+*/
+
 module.exports = function(url, opts, callback) {
 	if (arguments.length < 3) {
 		callback = opts;
 		opts = {};
 	}
 
-	if (!callback) {
-		callback = function() {};
+	callback = callback || function() {};
+
+	// directory where the cache will be stored
+	if (!opts.dir) {
+		opts.dir = "./cache/";
+	}
+	log.verbose("directory for cache is", opts.dir);
+
+	opts.url = url;
+
+	// you can provide your own path for the cached file if you like
+	// otherwise we will recreate the URL's path after the \.[a-z]+
+	if (!opts.path) {
+		opts.path = path.join(urlparse.parse(opts.url).hostname, urlparse.parse(opts.url).path);
 	}
 
-	if (opts.dir) {
-		if (opts.dir.slice(-1) != "/") {
-			opts.dir += "/";
-		}
-	} else {
-		opts.dir = "";
+	opts.path = path.join(opts.dir, opts.path);
+
+	// exorcise any trailing "/"
+	opts.path = path.join(path.dirname(opts.path), path.basename(opts.path));
+
+	log.verbose("page will be written to", opts.path);
+
+	retrieve(opts, callback);
+}
+
+// check if the file is in cache
+var retrieve = module.exports.retrieve = function(opts, callback) {
+	if (opts.force) {
+		download(opts, callback);
+		return;
 	}
 
-	opts.dir += "cache/";
-
-	announce("directory for cache is " + opts.dir)
-
-	var dir = opts.dir + url.split("/").slice(2, -1).join("/"),
-		path = opts.dir + url.split("/").slice(2).join("/");
-
-	if (path === dir + "/") {
-		path += "index.html";
-	}
-
-	fs.readFile(path, {encoding: "utf-8" }, function(err, body) {
+	fs.readFile(opts.path, { encoding: "utf-8" }, function(err, body) {
 		if (err) {
-			announce("Couldn't find " + url + " in cache. Calling live.");
-			request(url, function(err, resp, body) {
-				if (err) {
-					console.log("Error retrieving", url);
-					return null;
-				};
-
-				mkdirp(dir, function (err) {
-				    if (err) throw err;
-					fs.writeFile(path, body, function(err) {
-						if (err) throw err;
-						announce("Cached;");
-
-						if (opts.json) {
-							body = JSON.parse(body);
-						}
-						callback(body);
-					});
-				});
-			});
+			log.info("Couldn't find " + opts.url + " in cache. Calling live.");
+			download(opts, callback);
 		} else {
-			announce("loaded " + url + " from cache");
+			log.verbose("loaded " + opts.url + " from cache at " + opts.path);
 			if (opts.json) {
 				body = JSON.parse(body);
 			}
-			callback(body);
+			callback(body, opts);
 		}
 	});
 }
 
-module.exports.verbose = function() {
-	isVerbose = true;
-    return this;
-};
+var download = module.exports.download = function(opts, callback) {
+	console.log(path.basename(opts.path));
 
-function announce(message) {
-	if (isVerbose) {
-		console.log(message);
-	}
+	request(opts.url, function(err, resp, body) {
+		if (err) {
+			log.error("Error retrieving", opts.url);
+			return null;
+		};
+
+		mkdirp(path.dirname(opts.path), function (err) {
+		    if (err) throw err;
+			fs.writeFile(opts.path, body, function(err) {
+				if (err) throw err;
+				log.verbose("Cached in " + opts.path);
+
+				if (opts.json) {
+					body = JSON.parse(body);
+				}
+				callback(body, opts);
+			});
+		});
+	});	
 }

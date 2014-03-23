@@ -3,19 +3,20 @@
   "version": "0.0.1",
   "author": "Chris Wilson <christopher.e.wilson@gmail.com>",
   "description": "Retrieve HTML pages and write them to disk for fast future retrieval",
-  "contributors": [],
   "main": "index.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/wilson428/downcache"
   },
   "keywords": [
-    "wikipedia",
-    "mediawiki"
+    "cache"
   ],
+  "scripts": {
+    "test": "test/test.js"
+  },
   "dependencies" : {
-    "mkdirp"   :  "*",
-    "fs" :  "*",
-    "request" :  "*"
+    "mkdirp"   :  "~0.3.5",
+    "request" :  "~2.3.0",
+    "npmlog": "~1.4.0"
   }
 }
