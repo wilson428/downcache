@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-var downcache = require("downcache"),
+var downcache = require("../index"),
 	log = require("npmlog");
 
 log.level = "verbose";
