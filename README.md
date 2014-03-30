@@ -1,15 +1,16 @@
-downcache
+downcache[![Build Status](https://travis-ci.org/wilson428/downcache.png)](https://travis-ci.org/wilson428/downcache)
 =========
+Version 0.0.2
 
 Downcache is a Node.js module for downloading and caching webpages for fast future retrieval. It is modeled on the [download function](https://github.com/unitedstates/congress/blob/master/tasks/utils.py) we use at the [UnitedStates](https://github.com/unitedstates) project.
 
-Any sort of application or project that involves live calls to webpages often ends up hitting them far more often than is reasonably necessary. This module functions like @mikeal's [request](https://github.com/mikeal/request)--in fact, it uses it as a dependency--but stores a copy of the HTML response on your local machine. The next time you make a request to that page using downcache, it checks for that local copy before making another call to the live page.
+Any sort of application or project that involves live calls to webpages often ends up hitting them far more often than is reasonably necessary. This module functions like @mikeal's [request](https://github.com/mikeal/request) -- in fact, it uses it as a dependency -- but stores a copy of the HTML response on your local machine. The next time you make a request to that page using downcache, it checks for that local copy before making another call to the live page.
 
 #Installation
 
-```npm install https://github.com/wilson428/downcache.git``` (local)
+```npm install downcache``` (local)
 
-```sudo npm install -g https://github.com/wilson428/downcache.git``` (global)
+```sudo npm install -g downcache``` (global)
 
 #Usage
 

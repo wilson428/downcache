@@ -1,8 +1,8 @@
 {
   "name": "downcache",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "author": "Chris Wilson <christopher.e.wilson@gmail.com>",
-  "description": "Retrieve HTML pages and write them to disk for fast future retrieval",
+  "description": "Download and cache webpages and write them to disk for fast future retrieval",
   "main": "index.js",
   "repository": {
     "type": "git",
