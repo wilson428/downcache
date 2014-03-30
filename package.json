@@ -16,7 +16,7 @@
   },
   "dependencies" : {
     "mkdirp"   :  "~0.3.5",
-    "request" :  "~2.3.0",
-    "npmlog": "~1.4.0"
+    "request" :  "2.34.0",
+    "npmlog": "*"
   }
 }
