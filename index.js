@@ -31,7 +31,7 @@ module.exports = function(url, opts, callback) {
 	if (!opts.dir) {
 		opts.dir = "./cache/";
 	}
-	//log.verbose("directory for cache is", opts.dir);
+	log.verbose("directory for cache is", opts.dir);
 
 	opts.url = url;
 
@@ -81,7 +81,7 @@ var retrieve = module.exports.retrieve = function(opts, callback) {
 var download = module.exports.download = function(opts, callback) {
 	request(opts.url, function(err, resp, body) {
 		if (err) {
-			log.error("Error retrieving", opts.url);
+			log.error("Error retrieving", opts.url, ":", err);
 			return callback(err, body, resp);
 		};
 
