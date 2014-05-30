@@ -70,10 +70,16 @@ var retrieve = module.exports.retrieve = function(opts, callback) {
 			log.verbose("loaded " + opts.url + " from cache at " + opts.path);
 
 			if (opts.json) {
-				body = JSON.parse(body);
+				try {
+					body = JSON.parse(body);
+				} catch(e) {
+					log.error("Couldn't parse response as JSON");
+					callback(e, { status: "JSON error" }, null);
+					return;
+				}
 			}
 
-			callback(null, body, { status: "from_cache" });
+			callback(null, { status: "from_cache" }, body);
 		}
 	});
 };
@@ -82,18 +88,18 @@ var download = module.exports.download = function(opts, callback) {
 	request(opts.url, function(err, resp, body) {
 		if (err) {
 			log.error("Error retrieving", opts.url, ":", err);
-			return callback(err, body, resp);
+			return callback(err, resp, body);
 		};
 
 		// store in local cache
 		mkdirp(path.dirname(opts.path), function (err) {
 		    if (err) {
-		    	return callback(err, body, resp);
+		    	return callback(err, resp, body);
 		    }
 
 			fs.writeFile(opts.path, body, function(err) {
 				if (err) {
-			    	return callback(err, body, resp);
+			    	return callback(err, resp, body);
 				}
 				log.verbose("Cached at " + opts.path);
 
@@ -101,7 +107,7 @@ var download = module.exports.download = function(opts, callback) {
 					body = JSON.parse(body);
 				}
 
-				callback(null, body, resp);
+				callback(null, resp, body);
 			});
 		});
 	});	
