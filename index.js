@@ -66,6 +66,9 @@ var retrieve = module.exports.retrieve = function(opts, callback) {
 		if (err) {
 			log.verbose("Couldn't find " + opts.url + " in cache. (Looked for it at " + opts.path + ".) Calling live.");
 			download(opts, callback);
+		} else if (body.length === 0) {
+			log.verbose("Found an empty file in the cache for " + opts.url + ". Calling live.");
+			download(opts, callback);
 		} else {
 			log.verbose("loaded " + opts.url + " from cache at " + opts.path);
 

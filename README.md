@@ -1,7 +1,7 @@
 downcache
-[![Build Status](https://travis-ci.org/wilson428/downcache.png)](https://travis-ci.org/wilson428/downcache)
 =========
-Version 0.0.3
+Version 0.0.4
+[![Build Status](https://travis-ci.org/wilson428/downcache.png)](https://travis-ci.org/wilson428/downcache)
 
 Downcache is a Node.js module for downloading and caching webpages for fast future retrieval. It is modeled on the [download function](https://github.com/unitedstates/congress/blob/master/tasks/utils.py) we use at the [UnitedStates](https://github.com/unitedstates) project.
 
@@ -57,6 +57,9 @@ To specify options, pass a third argument to ```downcache``` between the url and
 	-Return a better response when called from cache
 
 #Changes
+**v0.0.4**
+Checks to see if cached version is empty, and calls live if so.
+
 **v0.0.3**
 +Changed order of arguments passed to callback from `(err, body, resp)` to `(err, resp, body)` to match the [request module](https://github.com/mikeal/request).
 
