@@ -14,7 +14,7 @@ nocache: Don't cache the raw response. Then question why you are using this modu
 */
 
 module.exports = function(url, opts, callback) {
-	opts = opts || {};
+	//opts = opts || {};
 
 	// if two arguments, assume second is a callback
 	if (arguments.length < 3 && typeof opts === "function") {
@@ -71,18 +71,7 @@ var retrieve = module.exports.retrieve = function(opts, callback) {
 			download(opts, callback);
 		} else {
 			log.verbose("loaded " + opts.url + " from cache at " + opts.path);
-
-			if (opts.json) {
-				try {
-					body = JSON.parse(body);
-				} catch(e) {
-					log.error("Couldn't parse response as JSON");
-					callback(e, { status: "JSON error" }, null);
-					return;
-				}
-			}
-
-			callback(null, { status: "from_cache" }, body);
+			toCallback(opts, { status: "retrieved from cache", path: opts.path, url: opts.url }, body, callback);
 		}
 	});
 };
@@ -91,27 +80,44 @@ var download = module.exports.download = function(opts, callback) {
 	request(opts.url, function(err, resp, body) {
 		if (err) {
 			log.error("Error retrieving", opts.url, ":", err);
-			return callback(err, resp, body);
+			return callback(err, resp, null);
 		};
+
+		var response = {
+			response: resp,
+			url: opts.url
+		}
 
 		// store in local cache
 		mkdirp(path.dirname(opts.path), function (err) {
 		    if (err) {
-		    	return callback(err, resp, body);
+		    	response.status = "error";
+		    	return callback(err, response, body);
 		    }
 
 			fs.writeFile(opts.path, body, function(err) {
 				if (err) {
-			    	return callback(err, resp, body);
+			    	response.status = "error";
+			    	return callback(err, response, body);
 				}
 				log.verbose("Cached at " + opts.path);
-
-				if (opts.json) {
-					body = JSON.parse(body);
-				}
-
-				callback(null, resp, body);
+		    	response.status = "retrieved live and cached";
+		    	response.path = opts.path;
+				toCallback(opts, response, body, callback);
 			});
 		});
 	});	
 };
+
+var toCallback = function(opts, resp, body, callback) {
+	if (opts.json) {
+		try {
+			body = JSON.parse(body);
+		} catch(e) {
+			log.error("Couldn't parse response as JSON. Returning as string");
+			callback(e, resp, body);
+			return;
+		}
+	}
+	callback(null, resp, body);
+}
