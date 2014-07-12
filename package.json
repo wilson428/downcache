@@ -1,6 +1,6 @@
 {
   "name": "downcache",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "author": "Chris Wilson <christopher.e.wilson@gmail.com>",
   "description": "Download and cache webpages and write them to disk for fast future retrieval",
   "main": "index.js",

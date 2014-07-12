@@ -14,10 +14,9 @@ nocache: Don't cache the raw response. Then question why you are using this modu
 */
 
 module.exports = function(url, opts, callback) {
-	//opts = opts || {};
-
-	// if two arguments, assume second is a callback
-	if (arguments.length < 3 && typeof opts === "function") {
+	if (arguments.length === 1) {
+		opts = {};
+	} else if (arguments.length === 2 && typeof opts === "function") {
 		callback = opts;
 		opts = {};
 	}
@@ -31,6 +30,7 @@ module.exports = function(url, opts, callback) {
 	if (!opts.dir) {
 		opts.dir = "./cache/";
 	}
+	
 	log.verbose("directory for cache is", opts.dir);
 
 	opts.url = url;
