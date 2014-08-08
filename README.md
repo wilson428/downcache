@@ -47,16 +47,24 @@ By default, this module creates a ```cache``` directory in the current directory
 To specify options, pass a third argument to ```downcache``` between the url and the callback. Here are your choices:
 
 	-```dir```: The cache directory. Default is "cache"
-	-```path```: The filepath to write the url response to. Default is the url itself, minus the schema (http://)
+	-```path```: The filepath to write the url response to. Default is the url itself as a file structure
 	-```force```: Don't bother looking for the file in cache and call it live
 	-```nocache```: Don't write the response to cache. Then question why you are using this module.
 	-```json```: Run ```JSON.parse``` on the response
 
+Note: The default behavior for "path" is similar to the structure created by `wget`, in which the directory structure of the website is replicated on disk. At some future point, I may make this identical so that one can "precache" a site by mirroring it and then use this module to make requests to it, falling back on the live site.
+
+The most common case for specifying your own path is if the site that you're requesting attaches session keys to the links in the source code, as many government database search results have the awful habit of doing. If you don't specify a path without these keys, they will fool the module into requesting a new URL each time.
+
 #To Do
+	-Allow for optional "should I cache?" logic so as to ignore certain types of responses you don't want (say, those that are under 1KB, indicating an error)
 	-Allow for cache expiration
 	-Return a better response when called from cache
 
 #Changes
+**v0.0.5a**
+Does not cache responses that have a status code other than 200.
+
 **v0.0.4**
 Checks to see if cached version is empty, and calls live if so.
 

@@ -80,8 +80,14 @@ var download = module.exports.download = function(opts, callback) {
 	request(opts.url, function(err, resp, body) {
 		if (err) {
 			log.error("Error retrieving", opts.url, ":", err);
-			return callback(err, resp, null);
+			return callback(err, null, null);
 		};
+
+		// make sure it's a valid response
+		if (resp.statusCode != 200) {
+			log.info("Did not cache", opts.url, "because response code was", resp.statusCode);
+			return callback("Bad response code", resp, body);
+		}
 
 		var response = {
 			response: resp,

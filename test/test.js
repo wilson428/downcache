@@ -25,3 +25,8 @@ downcache("http://time.com/27821/us-college-rankings/", {
 		console.log(resp);
 	});	
 });
+
+// see what happens when we get a status code other than 200
+downcache("http://api.meetup.com/2/members?group_id=741891&key=dsafsadfsadfasf", function(err, resp, html) {
+	console.log(err);
+});
