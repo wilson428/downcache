@@ -9,9 +9,9 @@ Any sort of application or project that involves live calls to webpages often en
 
 #Installation
 
-```npm install downcache``` (local)
+`npm install downcache` (local)
 
-```sudo npm install -g downcache``` (global)
+`sudo npm install -g downcache` (global)
 
 #Usage
 
@@ -25,7 +25,7 @@ If you request this page sometime later, you will see that the response returns 
 
 #Callbacks
 
-The only required input to ```downcache``` is a url. Most of the time, you'll want to pass a callback function as well. This receives three variables: An error (hopefully null), a response object that is either the response provided by ```request``` or an object indicating that the page was loaded from cache, and the body of the page requested. Do with them what you will (or not).
+The only required input to `downcache` is a url. Most of the time, you'll want to pass a callback function as well. This receives three variables: An error (hopefully null), a response object that is either the response provided by `request` or an object indicating that the page was loaded from cache, and the body of the page requested. Do with them what you will (or not).
 
 	downcache("http://time.com/7612/americas-mood-map-an-interactive-guide-to-the-united-states-of-attitude/", function(err, resp, body) {
 		if (err) throw err;
@@ -40,21 +40,26 @@ Any error from the request, file retrieval or file writing is elevated to the ca
 
 #Caching
 
-By default, this module creates a ```cache``` directory in the current directory. The path to the cached file is created from the url so that the local file structure resembles the website being crawled. 
+By default, this module creates a `cache` directory in the current directory. The path to the cached file is created from the url so that the local file structure resembles the website being crawled. 
 
 #Options
 
-To specify options, pass a third argument to ```downcache``` between the url and the callback. Here are your choices:
+To specify options, pass a third argument to `downcache` between the url and the callback. Here are your choices:
 
-	-```dir```: The cache directory. Default is "cache"
-	-```path```: The filepath to write the url response to. Default is the url itself as a file structure
-	-```force```: Don't bother looking for the file in cache and call it live
-	-```nocache```: Don't write the response to cache. Then question why you are using this module.
-	-```json```: Run ```JSON.parse``` on the response
+	-`dir`: The cache directory. Default is "cache"
+	-`path`: The filepath to write the url response to. Default is the url itself as a file structure
+	-`force`: Don't bother looking for the file in cache and call it live
+	-`nocache`: Don't write the response to cache. Then question why you are using this module.
+	-`json`: Run `JSON.parse` on the response
+	-`log`: Log level for module, using [npmlog](https://www.npmjs.com/package/npmlog) values: `verbose`, `info`, `warn` (default), `error`. 
+	-`limit`: How long to wait in milliseconds between each http call. Default is 100ms.
 
 Note: The default behavior for "path" is similar to the structure created by `wget`, in which the directory structure of the website is replicated on disk. At some future point, I may make this identical so that one can "precache" a site by mirroring it and then use this module to make requests to it, falling back on the live site.
 
 The most common case for specifying your own path is if the site that you're requesting attaches session keys to the links in the source code, as many government database search results have the awful habit of doing. If you don't specify a path without these keys, they will fool the module into requesting a new URL each time.
+
+#Rate limiting
+If you invoke this module many times in a row, there is built-in rate limiting to prevent bad behavior. The default is not more than one call per 100 milliseconds, which you can adjust with the `limit` option. This is still experimental since the function is invoked anew each time.
 
 #To Do
 	-Allow for optional "should I cache?" logic so as to ignore certain types of responses you don't want (say, those that are under 1KB, indicating an error)

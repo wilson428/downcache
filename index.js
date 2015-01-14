@@ -3,7 +3,12 @@ var request = require('request'),
 	path = require('path'),
 	urlparse = require('url'),
 	mkdirp = require('mkdirp'),
-	log = require('npmlog');
+	log = require('npmlog'),
+	extend = require('extend');
+
+var RateLimiter = require('limiter').RateLimiter;
+
+var limiter;
 
 /* OPTIONS */
 /*
@@ -13,27 +18,35 @@ force: Ignore presence of cache and call live
 nocache: Don't cache the raw response. Then question why you are using this module.
 */
 
+//log.level = "verbose";
+
+var default_options = {
+	dir: "./cache/",
+	limit: 100,
+	log: "warn"	
+}
+
 module.exports = function(url, opts, callback) {
-	if (arguments.length === 1) {
+	if (arguments.length === 1 && typeof url === "string") {
 		opts = {};
 	} else if (arguments.length === 2 && typeof opts === "function") {
 		callback = opts;
 		opts = {};
 	}
 
+	opts = extend(false, default_options, opts);
+
+	log.level = opts.log || "warn";
+
 	if (!callback) {
-		log.verbose("FYI, no callback provided.");
+		log.info("FYI, no callback provided to downcache.");
 		callback = function() {};
 	}
 
-	// directory where the cache will be stored
-	if (!opts.dir) {
-		opts.dir = "./cache/";
-	}
-	
 	log.verbose("directory for cache is", opts.dir);
 
 	opts.url = url;
+	limiter = new RateLimiter(1, opts.limit);
 
 	// you can provide your own path for the cached file if you like
 	// otherwise we will recreate the URL's path after the \.[a-z]+
@@ -77,9 +90,22 @@ var retrieve = module.exports.retrieve = function(opts, callback) {
 };
 
 var download = module.exports.download = function(opts, callback) {
+
+	limiter.removeTokens(1, function(err, remainingRequests) {
+		if (err) {
+			console.log("ERROR", opts.urls);
+			return callback("rate limited");
+		}
+
+		downloadDirect(opts,callback);
+	});
+}
+
+var downloadDirect = module.exports.downloadDirect = function(opts, callback) {
 	request(opts.url, function(err, resp, body) {
 		if (err) {
 			log.error("Error retrieving", opts.url, ":", err);
+			console.log(err, resp, body);
 			return callback(err, null, null);
 		};
 
