@@ -3,7 +3,10 @@
 var downcache = require("../index"),
 	rimraf = require("rimraf");
 
-downcache.set("log", "info");
+downcache.set({
+	log: "info",
+	limit: 2000
+});
 
 // remove old cache from previous tests
 rimraf("./cache", function(err) {
@@ -20,8 +23,7 @@ rimraf("./cache", function(err) {
 
 	downcache("http://time.com/27821/us-college-rankings/", {
 		path: "great-articles/rankings.html",
-		log: "verbose",
-		limit: 20
+		log: "verbose" // will override just for this call
 	}, function(err, resp, html) {
 		if (resp.socket) {
 			console.log(resp.socket.bytesRead);
@@ -29,7 +31,8 @@ rimraf("./cache", function(err) {
 		
 		// try again, see it load from cache
 		downcache("http://time.com/27821/us-college-rankings/", {
-			path: "great-articles/rankings.html"
+			path: "great-articles/rankings.html",
+			log: "verbose"
 		}, function(err, resp, html) {
 			//console.log(resp);
 		});	

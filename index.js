@@ -20,7 +20,7 @@ nocache: Don't cache the raw response. Then question why you are using this modu
 
 // initial options, which we can overwrite any time
 var global_options = {
-	dir: "./cache/",
+	dir: "./cache",
 	limit: 1000,
 	log: "warn"	
 }

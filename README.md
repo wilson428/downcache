@@ -1,6 +1,6 @@
 downcache
 =========
-Version 0.0.6
+Version 0.0.6a
 [![Build Status](https://travis-ci.org/wilson428/downcache.png)](https://travis-ci.org/wilson428/downcache)
 
 Downcache is a Node.js module for downloading and caching webpages for fast future retrieval. It is modeled on the [download function](https://github.com/unitedstates/congress/blob/master/tasks/utils.py) we use at the [UnitedStates](https://github.com/unitedstates) project.
@@ -89,6 +89,9 @@ If you invoke this module many times in a row, there is built-in rate limiting t
 	-Return a better response when called from cache
 
 #Changes
+**v0.0.6a**
+Cleaned up tests and fixed the damn markdown list.
+
 **v0.0.6**
 Rate limiting implemented. Can now set "global" options for all downcache calls in a session.
 
