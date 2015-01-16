@@ -42,7 +42,7 @@ By default, this module creates a `cache` directory in the current directory. Th
 
 #Options
 
-To specify options, pass a third argument to `downcache` between the url and the callback. Here are your choices:
+There are a variety of options for you to specify and two ways to specify them.
 
 	-`dir`: The cache directory. Default is "cache"
 	-`path`: The filepath to write the url response to. Default is the url itself as a file structure
@@ -52,12 +52,34 @@ To specify options, pass a third argument to `downcache` between the url and the
 	-`log`: Log level for module, using [npmlog](https://www.npmjs.com/package/npmlog) values: `verbose`, `info`, `warn` (default), `error`. 
 	-`limit`: How long to wait in milliseconds between each http call. Default is 100ms.
 
-Note: The default behavior for "path" is similar to the structure created by `wget`, in which the directory structure of the website is replicated on disk. At some future point, I may make this identical so that one can "precache" a site by mirroring it and then use this module to make requests to it, falling back on the live site.
+To specify options for a _single URL call_, you can pass a third argument to `downcache` between the url and the callback, like so:
+
+	downcache("http://example.com/article.html", { 
+		dir: '/Users/jsmith/Desktop/cache/', 
+		log: 'verbose'
+	}, function(err, resp, body) {
+		//callback
+	});
+
+But if you want to store the cache somewhere else, like in the above example, it would be a hassle to specify this every time. So you can also set pseudo-global options that apply to all future `downcache` calls using the `set` method:
+
+	downcache.set("dir", "/Users/jsmith/Desktop/cache/");
+	// or 
+	downcache.set({
+		log: "info",
+		json: true
+	});
+
+If you specify these universal options, you can still override them with options passed to the main `downcache()` function call, but doing so with not overwrite the options specified by `.set()` for future calls.
+
+#Note on downcache and wget
+
+The default behavior for "path" is similar to the structure created by `wget`, in which the directory structure of the website is replicated on disk. At some future point, I may make this identical so that one can "precache" a site by mirroring it and then use this module to make requests to it, falling back on the live site.
 
 The most common case for specifying your own path is if the site that you're requesting attaches session keys to the links in the source code, as many government database search results have the awful habit of doing. If you don't specify a path without these keys, they will fool the module into requesting a new URL each time.
 
 #Rate limiting
-If you invoke this module many times in a row, there is built-in rate limiting to prevent bad behavior. The default is not more than one call per 100 milliseconds, which you can adjust with the `limit` option. This is still experimental since the function is invoked anew each time.
+If you invoke this module many times in a row, there is built-in rate limiting to prevent bad behavior. The default is not more than one call per 100 milliseconds, which you can adjust with the `limit` option. (Feel free to call `downcache()` as you would normally, and the rate limiter will store the calls until their turn comes up.) I recommend you set the rate limiting interval using `.set()` at the beginning of the program and leave it at that value for the duration of the execution. Changing it midstream should not cause an interruption, but it can create some confusing race conditions.
 
 #To Do
 	-Allow for optional "should I cache?" logic so as to ignore certain types of responses you don't want (say, those that are under 1KB, indicating an error)
@@ -65,6 +87,9 @@ If you invoke this module many times in a row, there is built-in rate limiting t
 	-Return a better response when called from cache
 
 #Changes
+**v0.0.6**
+Rate limiting implemented. Can now set "global" options for all downcache calls in a session.
+
 **v0.0.5b**
 Try out rate limiting 
 

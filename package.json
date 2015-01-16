@@ -1,6 +1,6 @@
 {
   "name": "downcache",
-  "version": "0.0.5d",
+  "version": "0.0.6",
   "author": "Chris Wilson <christopher.e.wilson@gmail.com>",
   "description": "Download and cache webpages and write them to disk for fast future retrieval",
   "main": "index.js",
@@ -18,7 +18,7 @@
     "mkdirp"   :  "~0.3.5",
     "request" :  "2.34.0",
     "graceful-fs": "2.0.3",
-    "npmlog": "*",
+    "npmlog": "1.0.0",
     "limiter": "1.0.x",
     "extend": "2.0.x"
   },

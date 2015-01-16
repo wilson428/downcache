@@ -97,7 +97,6 @@ var download = module.exports.download = function(opts, callback) {
 			log.warn("rate limited " + opts.url);
 			return callback("rate limited");
 		}
-
 		downloadDirect(opts,callback);
 	});
 }
