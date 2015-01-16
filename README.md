@@ -65,6 +65,9 @@ If you invoke this module many times in a row, there is built-in rate limiting t
 	-Return a better response when called from cache
 
 #Changes
+**v0.0.5b**
+Try out rate limiting 
+
 **v0.0.5a**
 Does not cache responses that have a status code other than 200.
 
@@ -73,6 +76,10 @@ Checks to see if cached version is empty, and calls live if so.
 
 **v0.0.3**
 +Changed order of arguments passed to callback from `(err, body, resp)` to `(err, resp, body)` to match the [request module](https://github.com/mikeal/request).
+
+#Compatibility
+
+Downcache is [tested](https://travis-ci.org/wilson428/downcache) on Node v0.10 and v0.11. It breaks on v0.8 due to a [problem with an npmlog dependency](https://travis-ci.org/wilson428/downcache).
 
 #License
 [MIT](/LICENSE.md)
