@@ -44,13 +44,15 @@ By default, this module creates a `cache` directory in the current directory. Th
 
 There are a variety of options for you to specify and two ways to specify them.
 
-	-`dir`: The cache directory. Default is "cache"
-	-`path`: The filepath to write the url response to. Default is the url itself as a file structure
-	-`force`: Don't bother looking for the file in cache and call it live
-	-`nocache`: Don't write the response to cache. Then question why you are using this module.
-	-`json`: Run `JSON.parse` on the response
-	-`log`: Log level for module, using [npmlog](https://www.npmjs.com/package/npmlog) values: `verbose`, `info`, `warn` (default), `error`. 
-	-`limit`: How long to wait in milliseconds between each http call. Default is 100ms.
+| option | default | description |
+| -------| ------- | ----------- |
+| dir    | './cache' | The directory where pages will be cached. Will be created if not present. | 
+| path   | url      | The file path to write the url response to inside the cache directory. Default is the url itself as a file structure. |
+| force  | false   | If true, don't bother looking for the file in cache and call it live. |
+| nocache | false  | Don't write the response to cache. Then question why you are using this module. |
+| json   | false | Run `JSON.parse` on the response. |
+| log    | 'warn' | Log level for module, using [npmlog](https://www.npmjs.com/package/npmlog) values: `verbose`, `info`, `warn`, `error`. |
+| limit  | 100  | How long to wait in milliseconds between each http call. |
 
 To specify options for a _single URL call_, you can pass a third argument to `downcache` between the url and the callback, like so:
 
