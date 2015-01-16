@@ -3,8 +3,14 @@
 var downcache = require("../index"),
 	rimraf = require("rimraf");
 
+downcache.set("log", "info");
+
 // remove old cache from previous tests
 rimraf("./cache", function(err) {
+	// see what happens when we get a status code other than 200
+	downcache("http://api.meetup.com/2/members?group_id=741891&key=dsafsadfsadfasf", function(err, resp, html) {
+		console.log(err);
+	});
 
 	downcache("http://en.wikipedia.org/w/api.php?action=query&prop=revisions&titles=Jimmy%20Rollins&rvprop=content&format=json");
 
@@ -14,7 +20,8 @@ rimraf("./cache", function(err) {
 
 	downcache("http://time.com/27821/us-college-rankings/", {
 		path: "great-articles/rankings.html",
-		log: "verbose"
+		log: "verbose",
+		limit: 20
 	}, function(err, resp, html) {
 		if (resp.socket) {
 			console.log(resp.socket.bytesRead);
@@ -28,8 +35,4 @@ rimraf("./cache", function(err) {
 		});	
 	});
 
-	// see what happens when we get a status code other than 200
-	downcache("http://api.meetup.com/2/members?group_id=741891&key=dsafsadfsadfasf", function(err, resp, html) {
-		console.log(err);
-	});
 });

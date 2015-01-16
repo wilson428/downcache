@@ -4,11 +4,9 @@ var request = require('request'),
 	urlparse = require('url'),
 	mkdirp = require('mkdirp'),
 	log = require('npmlog'),
-	extend = require('extend');
+	extend = require("extend");
 
 var RateLimiter = require('limiter').RateLimiter;
-
-var limiter;
 
 /* OPTIONS */
 /*
@@ -20,23 +18,27 @@ nocache: Don't cache the raw response. Then question why you are using this modu
 
 //log.level = "verbose";
 
-var default_options = {
+// initial options, which we can overwrite any time
+var global_options = {
 	dir: "./cache/",
-	limit: 100,
+	limit: 1000,
 	log: "warn"	
 }
 
-module.exports = function(url, opts, callback) {
-	if (arguments.length === 1 && typeof url === "string") {
-		opts = {};
-	} else if (arguments.length === 2 && typeof opts === "function") {
-		callback = opts;
-		opts = {};
+var limiter = new RateLimiter(1, global_options.limit);
+
+// downcache({ url: "http://whatever.com" })
+// downcache("http://whatever.com", { opts: values }, function(err, resp, body) {} )
+// downcache("http://whatever.com", function(err, resp, body) {} )
+
+module.exports = function(url, my_opts, callback) {
+	if (arguments.length === 2 && typeof my_opts === "function") {
+		callback = my_opts;
 	}
 
-	opts = extend(false, default_options, opts);
+	var opts = extend(false, {}, global_options, my_opts || {});
 
-	log.level = opts.log || "warn";
+	log.level = opts.log;
 
 	if (!callback) {
 		log.info("FYI, no callback provided to downcache.");
@@ -46,7 +48,6 @@ module.exports = function(url, opts, callback) {
 	log.verbose("directory for cache is", opts.dir);
 
 	opts.url = url;
-	limiter = new RateLimiter(1, opts.limit);
 
 	// you can provide your own path for the cached file if you like
 	// otherwise we will recreate the URL's path after the \.[a-z]+
@@ -93,7 +94,7 @@ var download = module.exports.download = function(opts, callback) {
 
 	limiter.removeTokens(1, function(err, remainingRequests) {
 		if (err) {
-			console.log("ERROR", opts.urls);
+			log.warn("rate limited " + opts.url);
 			return callback("rate limited");
 		}
 
@@ -105,7 +106,7 @@ var downloadDirect = module.exports.downloadDirect = function(opts, callback) {
 	request(opts.url, function(err, resp, body) {
 		if (err) {
 			log.error("Error retrieving", opts.url, ":", err);
-			console.log(err, resp, body);
+			log.error(err, resp, body);
 			return callback(err, null, null);
 		};
 
@@ -152,4 +153,16 @@ var toCallback = function(opts, resp, body, callback) {
 		}
 	}
 	callback(null, resp, body);
+}
+
+// update the global settings that get used in absense of a specification in the individual call
+module.exports.set = function(property, value) {
+	if (typeof property == "string" && typeof value == "string") {
+		global_options[property] = value;
+	} else if (typeof property == "object") {
+		extend(false, global_options, property);
+	}
+	if (property == "limit" || property.limit) {
+		limiter = new RateLimiter(1, global_options.limit);
+	}
 }
