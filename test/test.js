@@ -4,7 +4,7 @@ var downcache = require("../index"),
 	rimraf = require("rimraf");
 
 downcache.set({
-	log: "info",
+	log: "verbose",
 	limit: 2000
 });
 
@@ -15,10 +15,18 @@ rimraf("./cache", function(err) {
 		console.log(err);
 	});
 
-	downcache("http://en.wikipedia.org/w/api.php?action=query&prop=revisions&titles=Jimmy%20Rollins&rvprop=content&format=json");
+	downcache("http://en.wikipedia.org/w/api.php?action=query&prop=revisions&titles=Jimmy%20Rollins&rvprop=content&format=json", function(err, resp, html) {
+		//console.log(resp);
+		//console.log(Object.keys(resp.response));
+		console.log(resp.type, resp.sub_type);
+	});
 
-	downcache("http://time.com/selfies-cities-world-rankings/", function(err, resp, html) {
-		console.log("Downloaded", html.length, "characters");
+	downcache("http://www.imdb.com/title/tt0068646/", function(err, resp, html) {
+		console.log("Downloaded", html.length, "characters from", resp.url);
+
+		downcache("http://www.imdb.com/title/tt0068646/fullcredits", function(err, resp, html) {
+			console.log("Downloaded", html.length, "characters from", resp.url);
+		});
 	});
 
 	downcache("http://time.com/27821/us-college-rankings/", {
@@ -38,4 +46,10 @@ rimraf("./cache", function(err) {
 		});	
 	});
 
+	/*
+	// still working on this
+	downcache("http://mlb.mlb.com/images/players/mugshot/ph_424324.jpg", function(err, resp, body) {
+		console.log(resp.type, resp.sub_type);
+	});
+	*/
 });

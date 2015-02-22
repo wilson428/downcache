@@ -1,6 +1,6 @@
 downcache
 =========
-Version 0.0.6a
+Version 0.0.6b
 [![Build Status](https://travis-ci.org/wilson428/downcache.png)](https://travis-ci.org/wilson428/downcache)
 
 Downcache is a Node.js module for downloading and caching webpages for fast future retrieval. It is modeled on the [download function](https://github.com/unitedstates/congress/blob/master/tasks/utils.py) we use at the [UnitedStates](https://github.com/unitedstates) project.
@@ -19,7 +19,7 @@ Any sort of scraping project often ends up hitting pages far more often than is 
 		// do something with the HTML body response
 	});
 
-If you request this page sometime later, you will see that the response returns MUCH fast. That's because the response is loading from your hard drive, not the Internet.
+If you request this page sometime later, you will see that the response returns MUCH faster. That's because the response is loading from your hard drive, not the Internet.
 
 #Callbacks
 
@@ -53,6 +53,7 @@ There are a variety of options for you to specify and two ways to specify them.
 | json   | false | Run `JSON.parse` on the response. |
 | log    | 'warn' | Log level for module, using [npmlog](https://www.npmjs.com/package/npmlog) values: `verbose`, `info`, `warn`, `error`. |
 | limit  | 100  | How long to wait in milliseconds between each http call. |
+| noindex | false | Don't tack on an `/index.html` to the cache path where appropriate |
 
 To specify options for a _single URL call_, you can pass a third argument to `downcache` between the url and the callback, like so:
 
@@ -79,6 +80,12 @@ If you specify these universal options, you can still override them with options
 The default behavior for "path" is similar to the structure created by `wget`, in which the directory structure of the website is replicated on disk. At some future point, I may make this identical so that one can "precache" a site by mirroring it and then use this module to make requests to it, falling back on the live site.
 
 The most common case for specifying your own path is if the site that you're requesting attaches session keys to the links in the source code, as many government database search results have the awful habit of doing. If you don't specify a path without these keys, they will fool the module into requesting a new URL each time.
+
+Downcache will also append `/index.html` to URLs that end without an extensions. For example, the IMDB page for "The Godfather" resolves thus:
+
+	http://www.imdb.com/title/tt0068646 -> http://www.imdb.com/title/tt0068646/index.html
+
+The reason is so that, when you later make a call to `http://www.imdb.com/title/tt0068646/fullcredits`, `tt0068646` is a directory instead of a file in the cache system. Otherwise, the caching won't work. You can override this behavior by setting `noindex` to true in the options.
 
 #Rate limiting
 If you invoke this module many times in a row, there is built-in rate limiting to prevent bad behavior. The default is not more than one call per 100 milliseconds, which you can adjust with the `limit` option. (Feel free to call `downcache()` as you would normally, and the rate limiter will store the calls until their turn comes up.) I recommend you set the rate limiting interval using `.set()` at the beginning of the program and leave it at that value for the duration of the execution. Changing it midstream should not cause an interruption, but it can create some confusing race conditions.

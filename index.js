@@ -52,20 +52,28 @@ module.exports = function(url, my_opts, callback) {
 	// you can provide your own path for the cached file if you like
 	// otherwise we will recreate the URL's path after the \.[a-z]+
 	if (!opts.path) {
-		opts.path = url_to_path(opts.url);
+		opts.path = url_to_path(opts.url, opts);
 	}
 
 	opts.path = path.join(opts.dir, opts.path);
 
-	log.verbose("page will be written to", opts.path);
+	log.verbose("The cache path for " + url + " is " + opts.path);
 
 	retrieve(opts, callback);
 }
 
-var url_to_path = module.exports.url_to_path = function(url) {
+var url_to_path = module.exports.url_to_path = function(url, opts) {
 	var p = path.join(urlparse.parse(url).hostname, urlparse.parse(url).path);
 	// exorcise any trailing "/"
-	return path.join(path.dirname(p), path.basename(p));
+	p = path.join(path.dirname(p), path.basename(p));
+
+	if (!opts.noindex && path.extname(p) === "" && !urlparse.parse(url).query) {
+		log.verbose("Resolving", p, "to", p + "/index.html.");
+		p += "/index.html";
+	} else {
+		log.verbose("Not resolving", p, "to", p + "/index.html since you told me not to.");		
+	}
+	return p;
 };
 
 // check if the file is in cache
@@ -85,13 +93,14 @@ var retrieve = module.exports.retrieve = function(opts, callback) {
 			download(opts, callback);
 		} else {
 			log.verbose("loaded " + opts.url + " from cache at " + opts.path);
+
+			// we want to return an object as similar as possible to that which would have be retrieved live
 			toCallback(opts, { status: "retrieved from cache", path: opts.path, url: opts.url }, body, callback);
 		}
 	});
 };
 
 var download = module.exports.download = function(opts, callback) {
-
 	limiter.removeTokens(1, function(err, remainingRequests) {
 		if (err) {
 			log.warn("rate limited " + opts.url);
@@ -102,7 +111,7 @@ var download = module.exports.download = function(opts, callback) {
 }
 
 var downloadDirect = module.exports.downloadDirect = function(opts, callback) {
-	request(opts.url, function(err, resp, body) {
+	request.get(opts.url, function(err, resp, body) {
 		if (err) {
 			log.error("Error retrieving", opts.url, ":", err);
 			log.error(err, resp, body);
@@ -115,30 +124,99 @@ var downloadDirect = module.exports.downloadDirect = function(opts, callback) {
 			return callback("Bad response code", resp, body);
 		}
 
+		// we may want to change behavior based on the content type
+		var content_type = resp.headers['content-type'].toLowerCase().split("; ")[0],
+			type = content_type.split("/")[0],
+			sub_type = content_type.split("/")[1];
+
+		/*
+		// not ready for this
+
+		if (typeof opts.json === "undefined" && sub_type === "json") {
+			log.verbose("Guessing that " + opts.url + " is a JSON document based on HTTP response. Override with { json: false }");
+			opts.json = true;
+		}
+
+		if (typeof opts.image === "undefined" && type === "image") {
+			log.verbose("Guessing that " + opts.url + " is an image based on HTTP response. Override with { image: false }")
+			opts.image = true;
+		}
+		*/
+
 		var response = {
 			response: resp,
-			url: opts.url
+			url: opts.url,
+			type: type,
+			sub_type: sub_type
 		}
 
 		// store in local cache
 		mkdirp(path.dirname(opts.path), function (err) {
 		    if (err) {
 		    	response.status = "error";
+		    	log.warn("Downcache wasn't able to make a directory at", opts.path + ". This is probably because there's a file in the way. Try clearing the cache and setting 'index' to true in the downcache options.");
 		    	return callback(err, response, body);
 		    }
 
-			fs.writeFile(opts.path, body, function(err) {
-				if (err) {
-			    	response.status = "error";
-			    	return callback(err, response, body);
-				}
-				log.verbose("Cached at " + opts.path);
-		    	response.status = "retrieved live and cached";
-		    	response.path = opts.path;
-				toCallback(opts, response, body, callback);
-			});
+			if (opts.image) {
+				var ws = fs.createWriteStream(opts.path);
+				ws.on('finish', function() {
+					console.log('image done');
+					console.log(resp.socket.bytesRead);
+					//ws.end();
+				});
+				//ws.write(new Buffer(body));
+				ws.write(body);
+				ws.end();
+
+				/*
+				console.log(Object.keys(resp));
+				fs.writeFile(opts.path, body, "binary", function(err) {
+					console.log("done");
+				});
+				/*
+				*/
+
+				/*
+				//http://stackoverflow.com/a/20490629/1779735
+				fs.writeFile(opts.path, body, 'binary', function(err) {
+					if (err) {
+				    	response.status = "error";
+				    	return callback(err, response, body);
+					}
+					log.verbose("Cached image at " + opts.path);
+			    	response.status = "retrieved image live and cached";
+			    	response.path = opts.path;
+					toCallback(opts, response, body, callback);
+				}); 
+				*/
+			} else {
+				fs.writeFile(opts.path, body, function(err) {
+					if (err) {
+				    	response.status = "error";
+				    	return callback(err, response, body);
+					}
+					log.verbose("Cached " + opts.url + " at " + opts.path);
+			    	response.status = "retrieved live and cached";
+			    	response.path = opts.path;
+					toCallback(opts, response, body, callback);
+				});
+			}
 		});
 	});	
+};
+
+var download_image = function(uri, filename, callback){
+	limiter.removeTokens(1, function() {
+		request.head(uri, function(err, res, body){
+	    	if (parseInt(res.headers['content-length'], 10) < 10) {
+		    	log.error("Encountered too few bytes when attempting to download ", uri);
+		    	callback(null);
+	    	} else {
+			    request(uri).pipe(fs.createWriteStream(filename)).on('close', callback);
+	    	}
+	  });
+	});
 };
 
 var toCallback = function(opts, resp, body, callback) {
