@@ -46,6 +46,15 @@ rimraf("./cache", function(err) {
 		});	
 	});
 
+	// testing POST 
+	downcache("https://statements.mevaker.gov.il/Handler/GuarantyDonationPublisherHandler.ashx", {
+		post: {
+			action: "gcbp",
+			p: 3
+		}
+	}, function(err, resp, html) {
+		//console.log(resp);
+	});
 	/*
 	// still working on this
 	downcache("http://mlb.mlb.com/images/players/mugshot/ph_424324.jpg", function(err, resp, body) {

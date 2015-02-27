@@ -4,7 +4,8 @@ var request = require('request'),
 	urlparse = require('url'),
 	mkdirp = require('mkdirp'),
 	log = require('npmlog'),
-	extend = require("extend");
+	extend = require("extend"),
+	querystring = require("querystring");
 
 var RateLimiter = require('limiter').RateLimiter;
 
@@ -70,8 +71,14 @@ var url_to_path = module.exports.url_to_path = function(url, opts) {
 	if (!opts.noindex && path.extname(p) === "" && !urlparse.parse(url).query) {
 		log.verbose("Resolving", p, "to", p + "/index.html.");
 		p += "/index.html";
-	} else {
+	} else if (opts.noindex) {
 		log.verbose("Not resolving", p, "to", p + "/index.html since you told me not to.");		
+	} else {
+		//log.verbose("Not resolving", p, "to", p + "/index.html since you told me not to.");				
+	}
+
+	if (opts.post) {
+		p += "?" + querystring.stringify(opts.post);
 	}
 	return p;
 };
@@ -111,7 +118,7 @@ var download = module.exports.download = function(opts, callback) {
 }
 
 var downloadDirect = module.exports.downloadDirect = function(opts, callback) {
-	request.get(opts.url, function(err, resp, body) {
+	function request_response(err, resp, body) {
 		if (err) {
 			log.error("Error retrieving", opts.url, ":", err);
 			log.error(err, resp, body);
@@ -158,6 +165,18 @@ var downloadDirect = module.exports.downloadDirect = function(opts, callback) {
 		    	return callback(err, response, body);
 		    }
 
+			fs.writeFile(opts.path, body, function(err) {
+				if (err) {
+			    	response.status = "error";
+			    	return callback(err, response, body);
+				}
+				log.verbose("Cached " + opts.url + " at " + opts.path);
+		    	response.status = "retrieved live and cached";
+		    	response.path = opts.path;
+				toCallback(opts, response, body, callback);
+			});
+
+		    /*
 			if (opts.image) {
 				var ws = fs.createWriteStream(opts.path);
 				ws.on('finish', function() {
@@ -169,15 +188,12 @@ var downloadDirect = module.exports.downloadDirect = function(opts, callback) {
 				ws.write(body);
 				ws.end();
 
-				/*
 				console.log(Object.keys(resp));
 				fs.writeFile(opts.path, body, "binary", function(err) {
 					console.log("done");
 				});
 				/*
-				*/
 
-				/*
 				//http://stackoverflow.com/a/20490629/1779735
 				fs.writeFile(opts.path, body, 'binary', function(err) {
 					if (err) {
@@ -189,21 +205,20 @@ var downloadDirect = module.exports.downloadDirect = function(opts, callback) {
 			    	response.path = opts.path;
 					toCallback(opts, response, body, callback);
 				}); 
-				*/
 			} else {
-				fs.writeFile(opts.path, body, function(err) {
-					if (err) {
-				    	response.status = "error";
-				    	return callback(err, response, body);
-					}
-					log.verbose("Cached " + opts.url + " at " + opts.path);
-			    	response.status = "retrieved live and cached";
-			    	response.path = opts.path;
-					toCallback(opts, response, body, callback);
-				});
-			}
+			*/
 		});
-	});	
+	}
+
+	if (opts.post) {
+		log.info("POST");
+		request.post({
+			url: opts.url,
+			form: opts.post
+		}, request_response);
+	} else {
+		request.get(opts.url, request_response);
+	}
 };
 
 var download_image = function(uri, filename, callback){

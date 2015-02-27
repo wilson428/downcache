@@ -1,6 +1,6 @@
 downcache
 =========
-Version 0.0.6b
+Version 0.0.7
 [![Build Status](https://travis-ci.org/wilson428/downcache.png)](https://travis-ci.org/wilson428/downcache)
 
 Downcache is a Node.js module for downloading and caching webpages for fast future retrieval. It is modeled on the [download function](https://github.com/unitedstates/congress/blob/master/tasks/utils.py) we use at the [UnitedStates](https://github.com/unitedstates) project.
@@ -54,6 +54,7 @@ There are a variety of options for you to specify and two ways to specify them.
 | log    | 'warn' | Log level for module, using [npmlog](https://www.npmjs.com/package/npmlog) values: `verbose`, `info`, `warn`, `error`. |
 | limit  | 100  | How long to wait in milliseconds between each http call. |
 | noindex | false | Don't tack on an `/index.html` to the cache path where appropriate |
+| post   | null | an object to send as POST parameters. |
 
 To specify options for a _single URL call_, you can pass a third argument to `downcache` between the url and the callback, like so:
 
@@ -96,6 +97,9 @@ If you invoke this module many times in a row, there is built-in rate limiting t
 	-Return a better response when called from cache
 
 #Changes
+**v0.0.7**
+Support POST requests
+
 **v0.0.6a**
 Cleaned up tests and fixed the damn markdown list.
 
