@@ -214,10 +214,14 @@ var downloadDirect = module.exports.downloadDirect = function(opts, callback) {
 		log.info("POST");
 		request.post({
 			url: opts.url,
-			form: opts.post
+			form: opts.post,
+			gzip: opts.gzip
 		}, request_response);
 	} else {
-		request.get(opts.url, request_response);
+		request.get({
+			url: opts.url,
+			gzip: opts.gzip
+		}, request_response);
 	}
 };
 
