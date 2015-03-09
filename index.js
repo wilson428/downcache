@@ -232,7 +232,10 @@ var download_image = function(uri, filename, callback){
 		    	log.error("Encountered too few bytes when attempting to download ", uri);
 		    	callback(null);
 	    	} else {
-			    request(uri).pipe(fs.createWriteStream(filename)).on('close', callback);
+			    request({
+			    	uri: uri,
+			    	gzip: true
+			    }).pipe(fs.createWriteStream(filename)).on('close', callback);
 	    	}
 	  });
 	});
