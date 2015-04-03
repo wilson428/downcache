@@ -215,12 +215,12 @@ var downloadDirect = module.exports.downloadDirect = function(opts, callback) {
 		request.post({
 			url: opts.url,
 			form: opts.post,
-			gzip: opts.gzip
+			gzip: opts.gzip || false
 		}, request_response);
 	} else {
 		request.get({
 			url: opts.url,
-			gzip: opts.gzip
+			gzip: opts.gzip || false
 		}, request_response);
 	}
 };
