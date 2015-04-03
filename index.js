@@ -214,10 +214,14 @@ var downloadDirect = module.exports.downloadDirect = function(opts, callback) {
 		log.info("POST");
 		request.post({
 			url: opts.url,
-			form: opts.post
+			form: opts.post,
+			gzip: opts.gzip
 		}, request_response);
 	} else {
-		request.get(opts.url, request_response);
+		request.get({
+			url: opts.url,
+			gzip: opts.gzip
+		}, request_response);
 	}
 };
 
@@ -228,7 +232,10 @@ var download_image = function(uri, filename, callback){
 		    	log.error("Encountered too few bytes when attempting to download ", uri);
 		    	callback(null);
 	    	} else {
-			    request(uri).pipe(fs.createWriteStream(filename)).on('close', callback);
+			    request({
+			    	uri: uri,
+			    	gzip: true
+			    }).pipe(fs.createWriteStream(filename)).on('close', callback);
 	    	}
 	  });
 	});
