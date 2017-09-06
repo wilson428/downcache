@@ -68,7 +68,7 @@ var url_to_path = module.exports.url_to_path = function(url, opts) {
 	// exorcise any trailing "/"
 	p = path.join(path.dirname(p), path.basename(p));
 
-	if (!opts.noindex && path.extname(p) === "" && !urlparse.parse(url).query) {
+	if (urlparse.parse(url).path.length <= 1 || (!opts.noindex && path.extname(p) === "" && !urlparse.parse(url).query)) {
 		log.verbose("Resolving", p, "to", p + "/index.html.");
 		p += "/index.html";
 	} else if (opts.noindex) {
