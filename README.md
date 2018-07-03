@@ -1,6 +1,7 @@
 downcache
 =========
-Version 0.1.0
+v0.1.0
+
 [![Build Status](https://travis-ci.org/wilson428/downcache.png)](https://travis-ci.org/wilson428/downcache)
 [![Dependency Status](https://david-dm.org/wilson428/downcache.svg)](https://david-dm.org/wilson428/downcache)
 [![devDependencies](https://david-dm.org/wilson428/downcache/dev-status.svg)](https://david-dm.org/wilson428/downcache#info=devDependencies)
@@ -9,11 +10,11 @@ Downcache is a Node.js module for downloading and caching webpages for fast futu
 
 Any sort of scraping project often ends up hitting pages far more often than is reasonably necessary. This module functions like @mikeal's [request](https://github.com/mikeal/request) -- in fact, it uses it as a dependency -- but stores a copy of the HTML on your local machine. The next time you make a request to that page using `downcache`, it checks for that local copy before making another call to the live page.
 
-#Installation
+# Installation
 
 `npm install downcache`
 
-#Usage
+# Usage
 
 	const downcache = require("downcache");
 
@@ -23,7 +24,7 @@ Any sort of scraping project often ends up hitting pages far more often than is 
 
 If you request this page sometime later, you will see that the response returns MUCH faster. That's because the response is loading from your hard drive, not the Internet.
 
-#Callbacks
+# Callbacks
 
 The only required input to `downcache` is a url. Most of the time, you'll want to pass a callback function as well, which return three arguments, just like `request`: An error (hopefully null), a response object that is either the response provided by `request` or an object indicating that the page was loaded from cache, and the body of the page requested. Do with them what you will (or not).
 
@@ -38,11 +39,11 @@ The only required input to `downcache` is a url. Most of the time, you'll want t
 
 Any error from the request, file retrieval or file writing is elevated to the callback.
 
-#Caching
+# Caching
 
 By default, this module creates a `cache` directory in the current directory. The path to the cached file is created from the url so that the local file structure resembles the website being crawled. 
 
-#Options
+# Options
 
 There are a variety of options for you to specify and two ways to specify them.
 
@@ -78,7 +79,7 @@ But if you want to store the cache somewhere else, like in the above example, it
 
 If you specify these universal options, you can still override them with options passed to the main `downcache()` function call, but doing so with not overwrite the options specified by `.set()` for future calls.
 
-#Note on downcache and wget
+# Note on downcache and wget
 
 The default behavior for "path" is similar to the structure created by `wget`, in which the directory structure of the website is replicated on disk. At some future point, I may make this identical so that one can "precache" a site by mirroring it and then use this module to make requests to it, falling back on the live site.
 
@@ -90,17 +91,18 @@ Downcache will also append `/index.html` to URLs that end without an extensions.
 
 The reason is so that, when you later make a call to `http://www.imdb.com/title/tt0068646/fullcredits`, `tt0068646` is a directory instead of a file in the cache system. Otherwise, the caching won't work. You can override this behavior by setting `noindex` to true in the options.
 
-#Rate limiting
+# Rate limiting
 
 If you invoke this module many times in a row, there is built-in rate limiting to prevent bad behavior. The default is not more than one call per 100 milliseconds, which you can adjust with the `limit` option. (Feel free to call `downcache()` as you would normally, and the rate limiter will store the calls until their turn comes up.) I recommend you set the rate limiting interval using `.set()` at the beginning of the program and leave it at that value for the duration of the execution. Changing it midstream should not cause an interruption, but it can create some confusing race conditions.
 
-#To Do
-	+ Allow for optional "should I cache?" logic so as to ignore certain types of responses you don't want (say, those that are under 1KB, indicating an error)
-	+ Allow for cache expiration
-	+ Return a better response when called from cache
-	+ Make caching identical to `wget` for pre-caching
+# To Do
 
-#Changes
++ Allow for optional "should I cache?" logic so as to ignore certain types of responses you don't want (say, those that are under 1KB, indicating an error)
++ Allow for cache expiration
++ Return a better response when called from cache
++ Make caching identical to `wget` for pre-caching
+
+# Change Log
 
 **v0.1.0**
 Updated dependencies and accepted PR #5
@@ -132,9 +134,5 @@ Checks to see if cached version is empty, and calls live if so.
 **v0.0.3**
 +Changed order of arguments passed to callback from `(err, body, resp)` to `(err, resp, body)` to match the [request module](https://github.com/mikeal/request).
 
-#Compatibility
-
-Downcache is [tested](https://travis-ci.org/wilson428/downcache) on Node v0.10 and v0.11. It breaks on v0.8 due to a [problem with an npmlog dependency](https://travis-ci.org/wilson428/downcache).
-
-#License
+# License
 [MIT](/LICENSE.md)
