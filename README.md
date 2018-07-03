@@ -1,13 +1,13 @@
 downcache
 =========
-Version 0.0.9
+Version 0.1.0
 [![Build Status](https://travis-ci.org/wilson428/downcache.png)](https://travis-ci.org/wilson428/downcache)
 [![Dependency Status](https://david-dm.org/wilson428/downcache.svg)](https://david-dm.org/wilson428/downcache)
 [![devDependencies](https://david-dm.org/wilson428/downcache/dev-status.svg)](https://david-dm.org/wilson428/downcache#info=devDependencies)
 
 Downcache is a Node.js module for downloading and caching webpages for fast future retrieval. It is modeled on the [download function](https://github.com/unitedstates/congress/blob/master/tasks/utils.py) we use at the [UnitedStates](https://github.com/unitedstates) project.
 
-Any sort of scraping project often ends up hitting pages far more often than is reasonably necessary. This module functions like @mikeal's [request](https://github.com/mikeal/request) -- in fact, it uses it as a dependency -- but stores a copy of the HTML on your local machine. The next time you make a request to that page using downcache, it checks for that local copy before making another call to the live page.
+Any sort of scraping project often ends up hitting pages far more often than is reasonably necessary. This module functions like @mikeal's [request](https://github.com/mikeal/request) -- in fact, it uses it as a dependency -- but stores a copy of the HTML on your local machine. The next time you make a request to that page using `downcache`, it checks for that local copy before making another call to the live page.
 
 #Installation
 
@@ -15,9 +15,9 @@ Any sort of scraping project often ends up hitting pages far more often than is 
 
 #Usage
 
-	var downcache = require("downcache");
+	const downcache = require("downcache");
 
-	downcache("http://en.wikipedia.org/w/api.php?action=query&prop=revisions&titles=Jimmy%20Rollins&rvprop=content&format=json", function(err, resp, body) {
+	downcache("http://en.wikipedia.org/w/api.php?action=query&prop=revisions&titles=Jimmy%20Rollins&rvprop=content&format=json", (err, resp, body) => {
 		// do something with the HTML body response
 	});
 
@@ -25,9 +25,9 @@ If you request this page sometime later, you will see that the response returns 
 
 #Callbacks
 
-The only required input to `downcache` is a url. Most of the time, you'll want to pass a callback function as well. This receives three variables: An error (hopefully null), a response object that is either the response provided by `request` or an object indicating that the page was loaded from cache, and the body of the page requested. Do with them what you will (or not).
+The only required input to `downcache` is a url. Most of the time, you'll want to pass a callback function as well, which return three arguments, just like `request`: An error (hopefully null), a response object that is either the response provided by `request` or an object indicating that the page was loaded from cache, and the body of the page requested. Do with them what you will (or not).
 
-	downcache("http://time.com/7612/americas-mood-map-an-interactive-guide-to-the-united-states-of-attitude/", function(err, resp, body) {
+	downcache("http://time.com/7612/americas-mood-map-an-interactive-guide-to-the-united-states-of-attitude/", (err, resp, body) => {
 		if (err) throw err;
 		if (resp.socket) {
 			console.log(resp.socket.bytesRead);
@@ -84,21 +84,26 @@ The default behavior for "path" is similar to the structure created by `wget`, i
 
 The most common case for specifying your own path is if the site that you're requesting attaches session keys to the links in the source code, as many government database search results have the awful habit of doing. If you don't specify a path without these keys, they will fool the module into requesting a new URL each time.
 
-Downcache will also append `/index.html` to URLs that end without an extensions. For example, the IMDB page for "The Godfather" resolves thus:
+Downcache will also append `/index.html` to URLs that end without an extensions. (Thanks to @josephfrazier for catching that this [wasn't happening for the root URL](https://github.com/wilson428/downcache/pull/5).) For example, the IMDB page for "The Godfather" resolves thus:
 
 	http://www.imdb.com/title/tt0068646 -> http://www.imdb.com/title/tt0068646/index.html
 
 The reason is so that, when you later make a call to `http://www.imdb.com/title/tt0068646/fullcredits`, `tt0068646` is a directory instead of a file in the cache system. Otherwise, the caching won't work. You can override this behavior by setting `noindex` to true in the options.
 
 #Rate limiting
+
 If you invoke this module many times in a row, there is built-in rate limiting to prevent bad behavior. The default is not more than one call per 100 milliseconds, which you can adjust with the `limit` option. (Feel free to call `downcache()` as you would normally, and the rate limiter will store the calls until their turn comes up.) I recommend you set the rate limiting interval using `.set()` at the beginning of the program and leave it at that value for the duration of the execution. Changing it midstream should not cause an interruption, but it can create some confusing race conditions.
 
 #To Do
-	-Allow for optional "should I cache?" logic so as to ignore certain types of responses you don't want (say, those that are under 1KB, indicating an error)
-	-Allow for cache expiration
-	-Return a better response when called from cache
+	+ Allow for optional "should I cache?" logic so as to ignore certain types of responses you don't want (say, those that are under 1KB, indicating an error)
+	+ Allow for cache expiration
+	+ Return a better response when called from cache
+	+ Make caching identical to `wget` for pre-caching
 
 #Changes
+
+**v0.1.0**
+Updated dependencies and accepted PR #5
 
 **v0.0.9**
 Updated dependencies and added badges 
