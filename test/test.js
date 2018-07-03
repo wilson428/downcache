@@ -21,11 +21,12 @@ rimraf("./cache", function(err) {
 		console.log(resp.type, resp.sub_type);
 	});
 
-	downcache("http://www.imdb.com/title/tt0068646/", function(err, resp, html) {
-		console.log("Downloaded", html.length, "characters from", resp.url);
-
-		downcache("http://www.imdb.com/title/tt0068646/fullcredits", function(err, resp, html) {
+	downcache("http://www.imdb.com", function(err, resp, html) {
+		downcache("http://www.imdb.com/title/tt0068646/", function(err, resp, html) {
 			console.log("Downloaded", html.length, "characters from", resp.url);
+			downcache("http://www.imdb.com/title/tt0068646/fullcredits", function(err, resp, html) {
+				console.log("Downloaded", html.length, "characters from", resp.url);
+			});
 		});
 	});
 
