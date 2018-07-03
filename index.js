@@ -64,11 +64,12 @@ module.exports = function(url, my_opts, callback) {
 }
 
 var url_to_path = module.exports.url_to_path = function(url, opts) {
-	var p = path.join(urlparse.parse(url).hostname, urlparse.parse(url).path);
+	var parsedUrl = urlparse.parse(url);
+	var p = path.join(parsedUrl.hostname, parsedUrl.path);
 	// exorcise any trailing "/"
 	p = path.join(path.dirname(p), path.basename(p));
 
-	if (!opts.noindex && path.extname(p) === "" && !urlparse.parse(url).query) {
+	if (parsedUrl.path.length <= 1 || (!opts.noindex && path.extname(p) === "" && !parsedUrl.query)) {
 		log.verbose("Resolving", p, "to", p + "/index.html.");
 		p += "/index.html";
 	} else if (opts.noindex) {

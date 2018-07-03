@@ -1,12 +1,15 @@
 #!/usr/bin/env node
 
 var downcache = require("../index"),
+	assert = require("assert"),
 	rimraf = require("rimraf");
 
 downcache.set({
 	log: "verbose",
 	limit: 2000
 });
+
+assert.equal(downcache.url_to_path("http://example.com", {}), "example.com/index.html");
 
 // remove old cache from previous tests
 rimraf("./cache", function(err) {
