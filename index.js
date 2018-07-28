@@ -1,11 +1,10 @@
-var request = require('request'),
-	fs = require('graceful-fs'),
-	path = require('path'),
-	urlparse = require('url'),
-	mkdirp = require('mkdirp'),
-	log = require('npmlog'),
-	extend = require("extend"),
-	querystring = require("querystring");
+const fs = require('graceful-fs');
+const path = require('path');
+const querystring = require("querystring");
+const request = require('request');
+const urlparse = require('url');
+const mkdirp = require('mkdirp');
+var log = require('npmlog');
 
 var RateLimiter = require('limiter').RateLimiter;
 
@@ -15,54 +14,89 @@ dir: directory where cache will be stored
 path: path where cache is stored
 force: Ignore presence of cache and call live
 nocache: Don't cache the raw response. Then question why you are using this module.
+header: headers to pass to request()
+json: run JSON.parse on the result
+log: npmlog level
+limit: time in ms between calls
+noindex: Don't add /index.html to paths when appropriate
+post: POST request
 */
-
-//log.level = "verbose";
 
 // initial options, which we can overwrite any time
 var global_options = {
 	dir: "./cache",
-	limit: 1000,
-	log: "warn"	
-}
+	limit: 500,
+	log: "warn",
+	encoding: "utf-8",
+	force: false,
+	json: false,
+	noindex: false,
+	post: null,
+	headers: {
+		url: null,
+		gzip: true
+	}
+};
 
 var limiter = new RateLimiter(1, global_options.limit);
 
-// downcache({ url: "http://whatever.com" })
-// downcache("http://whatever.com", { opts: values }, function(err, resp, body) {} )
-// downcache("http://whatever.com", function(err, resp, body) {} )
+// downcache({ url: "http://example.com" })
+// downcache("http://example.com/data.json", { json: true }, function(err, resp, body) {} )
+// downcache("http://example.com", function(err, resp, body) {} )
 
-module.exports = function(url, my_opts, callback) {
-	if (arguments.length === 2 && typeof my_opts === "function") {
-		callback = my_opts;
-	}
+// we want to be flexible with the order of arguments since there are only three feasible types
+module.exports = function() {
+	// defaults
+	var opts = Object.assign({}, global_options);
 
-	var opts = extend(false, {}, global_options, my_opts || {});
+	// this doesn't currently fire.
+	var callback = function(err, resp, body) {
+		log.info("This is the default downcache callback since you didn't provide one.");
+		if (err) { log.error(err); return; }
+		log.info("Response code:", resp.statusCode);
+	};
+
+	Object.values(arguments).forEach(arg => {
+		if (typeof arg === "string") {
+			opts.headers.url = arg;
+		}
+
+		if (typeof arg === "object") {
+			opts = Object.assign(opts, arg);
+		}
+
+		if (typeof arg === "function") {
+			callback = arg;
+		}
+	});
 
 	log.level = opts.log;
 
-	if (!callback) {
-		log.info("FYI, no callback provided to downcache.");
-		callback = function() {};
+	// copy `url` and `encoding` to the headers object
+	if (!opts.headers.url) {
+		opts.headers.url = opts.url || opts.uri;
+	}
+
+	if (!opts.headers.encoding) {
+		opts.headers.encoding = opts.encoding;
 	}
 
 	log.verbose("directory for cache is", opts.dir);
 
-	opts.url = url;
-
 	// you can provide your own path for the cached file if you like
-	// otherwise we will recreate the URL's path after the \.[a-z]+
+	// otherwise we will recreate the URL's path in the cache directory
 	if (!opts.path) {
-		opts.path = url_to_path(opts.url, opts);
+		opts.path = url_to_path(opts.headers.url, opts);
 	}
 
 	opts.path = path.join(opts.dir, opts.path);
 
-	log.verbose("The cache path for " + url + " is " + opts.path);
+	log.verbose("The cache path for " + opts.headers.url + " is " + opts.path);
 
 	retrieve(opts, callback);
 }
 
+// create a filepath out of url, same as wget
 var url_to_path = module.exports.url_to_path = function(url, opts) {
 	var parsedUrl = urlparse.parse(url);
 	var p = path.join(parsedUrl.hostname, parsedUrl.path);
@@ -74,8 +108,6 @@ var url_to_path = module.exports.url_to_path = function(url, opts) {
 		p += "/index.html";
 	} else if (opts.noindex) {
 		log.verbose("Not resolving", p, "to", p + "/index.html since you told me not to.");		
-	} else {
-		//log.verbose("Not resolving", p, "to", p + "/index.html since you told me not to.");				
 	}
 
 	if (opts.post) {
@@ -92,43 +124,53 @@ var retrieve = module.exports.retrieve = function(opts, callback) {
 	}
 
 	// look for the file in cache. Otherwise call live.
-	fs.readFile(opts.path, { encoding: "utf-8" }, function(err, body) {
+	fs.readFile(opts.path, { encoding: opts.encoding }, function(err, body) {
 		if (err) {
-			log.verbose("Couldn't find " + opts.url + " in cache. (Looked for it at " + opts.path + ".) Calling live.");
-			download(opts, callback);
+			log.verbose("Couldn't find " + opts.headers.url + " in cache. (Looked for it at " + opts.path + ".) Calling live.");
+			queueDownload(opts, callback);
 		} else if (body.length === 0) {
-			log.verbose("Found an empty file in the cache for " + opts.url + ". Calling live.");
-			download(opts, callback);
+			log.verbose("Found an empty file in the cache for " + opts.headers.url + ". Calling live.");
+			queueDownload(opts, callback);
 		} else {
-			log.verbose("loaded " + opts.url + " from cache at " + opts.path);
+			log.verbose("loaded " + opts.headers.url + " from cache at " + opts.path);
 
 			// we want to return an object as similar as possible to that which would have be retrieved live
-			toCallback(opts, { status: "retrieved from cache", path: opts.path, url: opts.url }, body, callback);
+			var stats = fs.statSync(opts.path);
+			toCallback(opts, 
+				{
+					statusCode: "200",
+					message: "retrieved from cache",
+					path: opts.path,
+					url: opts.headers.url,
+					modified: stats.mtime
+				},
+				body, callback
+			);
 		}
 	});
 };
 
-var download = module.exports.download = function(opts, callback) {
+var queueDownload = function(opts, callback) {
 	limiter.removeTokens(1, function(err, remainingRequests) {
 		if (err) {
-			log.warn("rate limited " + opts.url);
+			log.info("rate limited " + opts.url);
 			return callback("rate limited");
 		}
-		downloadDirect(opts,callback);
+		download(opts, callback);
 	});
 }
 
-var downloadDirect = module.exports.downloadDirect = function(opts, callback) {
-	function request_response(err, resp, body) {
+var download = function(opts, callback) {
+	function requestCallback(err, resp, body) {
 		if (err) {
-			log.error("Error retrieving", opts.url, ":", err);
+			log.error("Error retrieving", opts.headers.url, ":", err);
 			log.error(err, resp, body);
 			return callback(err, null, null);
 		};
 
 		// make sure it's a valid response
 		if (resp.statusCode != 200) {
-			log.info("Did not cache", opts.url, "because response code was", resp.statusCode);
+			log.error("Did not cache", opts.headers.url, "because response code was", resp.statusCode);
 			return callback("Bad response code", resp, body);
 		}
 
@@ -138,22 +180,22 @@ var downloadDirect = module.exports.downloadDirect = function(opts, callback) {
 			sub_type = content_type.split("/")[1];
 
 		/*
-		// not ready for this
+		// to-do: handle images
 
 		if (typeof opts.json === "undefined" && sub_type === "json") {
-			log.verbose("Guessing that " + opts.url + " is a JSON document based on HTTP response. Override with { json: false }");
+			log.verbose("Guessing that " + opts.headers.url, + " is a JSON document based on HTTP response. Override with { json: false }");
 			opts.json = true;
 		}
 
 		if (typeof opts.image === "undefined" && type === "image") {
-			log.verbose("Guessing that " + opts.url + " is an image based on HTTP response. Override with { image: false }")
+			log.verbose("Guessing that " + opts.headers.url, + " is an image based on HTTP response. Override with { image: false }")
 			opts.image = true;
 		}
 		*/
 
 		var response = {
 			response: resp,
-			url: opts.url,
+			url: opts.headers.url,
 			type: type,
 			sub_type: sub_type
 		}
@@ -162,16 +204,17 @@ var downloadDirect = module.exports.downloadDirect = function(opts, callback) {
 		mkdirp(path.dirname(opts.path), function (err) {
 		    if (err) {
 		    	response.status = "error";
-		    	log.warn("Downcache wasn't able to make a directory at", opts.path + ". This is probably because there's a file in the way. Try clearing the cache and setting 'index' to true in the downcache options.");
+		    	log.warn("Downcache wasn't able to make a directory at", opts.path + ". This is probably because there's a file in the way. This can happen if `noindex` is set to true in the options.");
 		    	return callback(err, response, body);
 		    }
 
 			fs.writeFile(opts.path, body, function(err) {
 				if (err) {
+					log.error(err);
 			    	response.status = "error";
 			    	return callback(err, response, body);
 				}
-				log.verbose("Cached " + opts.url + " at " + opts.path);
+				log.verbose("Cached " + opts.headers.url + " at " + opts.path);
 		    	response.status = "retrieved live and cached";
 		    	response.path = opts.path;
 				toCallback(opts, response, body, callback);
@@ -213,16 +256,13 @@ var downloadDirect = module.exports.downloadDirect = function(opts, callback) {
 
 	if (opts.post) {
 		log.info("POST");
-		request.post({
-			url: opts.url,
-			form: opts.post,
-			gzip: opts.gzip || false
-		}, request_response);
+		opts.headers.form = opts.post;
+		// opts.headers.gzip = false;
+
+		request.post(opts.headers, requestCallback);
 	} else {
-		request.get({
-			url: opts.url,
-			gzip: opts.gzip || false
-		}, request_response);
+		// opts.headers.gzip = false;
+		request.get(opts.headers, requestCallback);
 	}
 };
 

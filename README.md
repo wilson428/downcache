@@ -58,6 +58,8 @@ There are a variety of options for you to specify and two ways to specify them.
 | limit  | 100  | How long to wait in milliseconds between each http call. |
 | noindex | false | Don't tack on an `/index.html` to the cache path where appropriate |
 | post   | null | an object to send as POST parameters. |
+| encoding   | "utf-8" | the type of encoding to both read the cached files and call uncached files |
+
 
 To specify options for a _single URL call_, you can pass a third argument to `downcache` between the url and the callback, like so:
 
