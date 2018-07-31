@@ -31,11 +31,11 @@ var global_options = {
 	force: false,
 	json: false,
 	noindex: false,
-	post: null,
-	headers: {
-		url: null,
-		gzip: true
-	}
+	post: null
+};
+
+var global_headers = {
+	gzip: true
 };
 
 var limiter = new RateLimiter(1, global_options.limit);
@@ -58,7 +58,7 @@ module.exports = function() {
 
 	Object.values(arguments).forEach(arg => {
 		if (typeof arg === "string") {
-			opts.headers.url = arg;
+			opts.url = arg;
 		}
 
 		if (typeof arg === "object") {
@@ -69,6 +69,8 @@ module.exports = function() {
 			callback = arg;
 		}
 	});
+
+	opts.headers = Object.assign(global_headers, opts.headers);
 
 	log.level = opts.log;
 
@@ -139,7 +141,7 @@ var retrieve = module.exports.retrieve = function(opts, callback) {
 			toCallback(opts, 
 				{
 					statusCode: "200",
-					message: "retrieved from cache",
+					statusMessage: "retrieved from cache",
 					path: opts.path,
 					url: opts.headers.url,
 					modified: stats.mtime
