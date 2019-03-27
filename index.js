@@ -4,9 +4,9 @@ const querystring = require("querystring");
 const request = require('request');
 const urlparse = require('url');
 const mkdirp = require('mkdirp');
-var log = require('npmlog');
+const log = require('npmlog');
 
-var RateLimiter = require('limiter').RateLimiter;
+const RateLimiter = require('limiter').RateLimiter;
 
 /* OPTIONS */
 /*
@@ -23,7 +23,7 @@ post: POST request
 */
 
 // initial options, which we can overwrite any time
-var global_options = {
+let global_options = {
 	dir: "./cache",
 	limit: 500,
 	log: "warn",
@@ -34,11 +34,11 @@ var global_options = {
 	post: null
 };
 
-var global_headers = {
+let global_headers = {
 	gzip: true
 };
 
-var limiter = new RateLimiter(1, global_options.limit);
+let limiter = new RateLimiter(1, global_options.limit);
 
 // downcache({ url: "http://example.com" })
 // downcache("http://example.com/data.json", { json: true }, function(err, resp, body) {} )
@@ -47,10 +47,10 @@ var limiter = new RateLimiter(1, global_options.limit);
 // we want to be flexible with the order of arguments since there are only three feasible types
 module.exports = function() {
 	// defaults
-	var opts = Object.assign({}, global_options);
+	let opts = Object.assign({}, global_options);
 
 	// this doesn't currently fire.
-	var callback = function(err, resp, body) {
+	let callback = function(err, resp, body) {
 		log.info("This is the default downcache callback since you didn't provide one.");
 		if (err) { log.error(err); return; }
 		log.info("Response code:", resp.statusCode);
@@ -70,7 +70,7 @@ module.exports = function() {
 		}
 	});
 
-	opts.headers = Object.assign(global_headers, opts.headers);
+	opts.headers = Object.assign(opts.headers || {}, global_headers);
 
 	log.level = opts.log;
 
@@ -99,9 +99,9 @@ module.exports = function() {
 }
 
 // create a filepath out of url, same as wget
-var url_to_path = module.exports.url_to_path = function(url, opts) {
-	var parsedUrl = urlparse.parse(url);
-	var p = path.join(parsedUrl.hostname, parsedUrl.path);
+let url_to_path = module.exports.url_to_path = function(url, opts) {
+	let parsedUrl = urlparse.parse(url);
+	let p = path.join(parsedUrl.hostname, parsedUrl.path);
 	// exorcise any trailing "/"
 	p = path.join(path.dirname(p), path.basename(p));
 
@@ -119,7 +119,7 @@ var url_to_path = module.exports.url_to_path = function(url, opts) {
 };
 
 // check if the file is in cache
-var retrieve = module.exports.retrieve = function(opts, callback) {
+let retrieve = module.exports.retrieve = function(opts, callback) {
 	if (opts.force) {
 		download(opts, callback);
 		return;
@@ -137,7 +137,7 @@ var retrieve = module.exports.retrieve = function(opts, callback) {
 			log.verbose("loaded " + opts.headers.url + " from cache at " + opts.path);
 
 			// we want to return an object as similar as possible to that which would have be retrieved live
-			var stats = fs.statSync(opts.path);
+			let stats = fs.statSync(opts.path);
 			toCallback(opts, 
 				{
 					statusCode: "200",
@@ -152,7 +152,7 @@ var retrieve = module.exports.retrieve = function(opts, callback) {
 	});
 };
 
-var queueDownload = function(opts, callback) {
+let queueDownload = function(opts, callback) {
 	limiter.removeTokens(1, function(err, remainingRequests) {
 		if (err) {
 			log.info("rate limited " + opts.url);
@@ -162,7 +162,7 @@ var queueDownload = function(opts, callback) {
 	});
 }
 
-var download = function(opts, callback) {
+let download = function(opts, callback) {
 	function requestCallback(err, resp, body) {
 		if (err) {
 			log.error("Error retrieving", opts.headers.url, ":", err);
@@ -177,7 +177,7 @@ var download = function(opts, callback) {
 		}
 
 		// we may want to change behavior based on the content type
-		var content_type = resp.headers['content-type'].toLowerCase().split("; ")[0],
+		let content_type = resp.headers['content-type'].toLowerCase().split("; ")[0],
 			type = content_type.split("/")[0],
 			sub_type = content_type.split("/")[1];
 
@@ -195,7 +195,7 @@ var download = function(opts, callback) {
 		}
 		*/
 
-		var response = {
+		let response = {
 			response: resp,
 			url: opts.headers.url,
 			type: type,
@@ -268,7 +268,7 @@ var download = function(opts, callback) {
 	}
 };
 
-var download_image = function(uri, filename, callback){
+let download_image = function(uri, filename, callback){
 	limiter.removeTokens(1, function() {
 		request.head(uri, function(err, res, body){
 	    	if (parseInt(res.headers['content-length'], 10) < 10) {
@@ -284,7 +284,7 @@ var download_image = function(uri, filename, callback){
 	});
 };
 
-var toCallback = function(opts, resp, body, callback) {
+let toCallback = function(opts, resp, body, callback) {
 	if (opts.json) {
 		try {
 			body = JSON.parse(body);
@@ -302,7 +302,7 @@ module.exports.set = function(property, value) {
 	if (typeof property == "string" && typeof value == "string") {
 		global_options[property] = value;
 	} else if (typeof property == "object") {
-		extend(false, global_options, property);
+		global_options = Object.assign(property, global_options);
 	}
 	if (property == "limit" || property.limit) {
 		limiter = new RateLimiter(1, global_options.limit);

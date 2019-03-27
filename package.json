@@ -15,15 +15,13 @@
     "test": "test/test.js"
   },
   "dependencies": {
-    "extend": ">=3.0.2",
+    "request": "^2.88.0",
     "graceful-fs": "^4.1.15",
     "limiter": "^1.1.4",
     "mkdirp": "^0.5.1",
-    "npmlog": "^4.1.2",
-    "request": "^2.88.0",
-    "rimraf": "^2.5.2"
+    "npmlog": "^4.1.2"
   },
   "devDependencies": {
-    "rimraf": "*"
+    "rimraf": "^2.6.3"
   }
 }

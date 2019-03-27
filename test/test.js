@@ -33,8 +33,8 @@ rimraf("./cache", function(err) {
 		});
 	});
 
-	downcache("http://time.com/27821/us-college-rankings/", {
-		path: "great-articles/rankings.html",
+	downcache("http://time.com/67280/mean-girls-mythology/", {
+		path: "great-articles/meangirls.html",
 		log: "verbose" // will override just for this call
 	}, function(err, resp, html) {
 		if (resp.socket) {
@@ -42,8 +42,8 @@ rimraf("./cache", function(err) {
 		}
 		
 		// try again, see it load from cache
-		downcache("http://time.com/27821/us-college-rankings/", {
-			path: "great-articles/rankings.html",
+		downcache("http://time.com/67280/mean-girls-mythology/", {
+			path: "great-articles/meangirls.html",
 			log: "verbose"
 		}, function(err, resp, html) {
 			//console.log(resp);
