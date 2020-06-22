@@ -35,7 +35,7 @@ let global_options = {
 };
 
 let global_headers = {
-	gzip: true
+	'Accept-Encoding': 'gzip, deflate, br'
 };
 
 let limiter = new RateLimiter(1, global_options.limit);
@@ -46,15 +46,14 @@ let limiter = new RateLimiter(1, global_options.limit);
 
 // we want to be flexible with the order of arguments since there are only three feasible types
 module.exports = function() {
-	// defaults
-	let opts = Object.assign({}, global_options);
-
 	// this doesn't currently fire.
 	let callback = function(err, resp, body) {
 		log.info("This is the default downcache callback since you didn't provide one.");
 		if (err) { log.error(err); return; }
 		log.info("Response code:", resp.statusCode);
 	};
+
+	let opts = {};
 
 	Object.values(arguments).forEach(arg => {
 		if (typeof arg === "string") {
@@ -70,30 +69,34 @@ module.exports = function() {
 		}
 	});
 
-	opts.headers = Object.assign(opts.headers || {}, global_headers);
+	opts = Object.assign(opts || {}, global_options);
+
+	let headers = Object.assign(opts.headers || {}, global_headers);
+
+	opts.headers = headers;
 
 	log.level = opts.log;
 
 	// copy `url` and `encoding` to the headers object
-	if (!opts.headers.url) {
-		opts.headers.url = opts.url || opts.uri;
-	}
+	// if (!opts.url) {
+	// 	opts.url = opts.url || opts.uri;
+	// }
 
-	if (!opts.headers.encoding) {
-		opts.headers.encoding = opts.encoding;
-	}
+	// if (!opts.headers.encoding) {
+	// 	opts.headers.encoding = opts.encoding;
+	// }
 
 	log.verbose("directory for cache is", opts.dir);
 
 	// you can provide your own path for the cached file if you like
 	// otherwise we will recreate the URL's path in the cache directory
 	if (!opts.path) {
-		opts.path = url_to_path(opts.headers.url, opts);
+		opts.path = url_to_path(opts.url, opts);
 	}
 
 	opts.path = path.join(opts.dir, opts.path);
 
-	log.verbose("The cache path for " + opts.headers.url + " is " + opts.path);
+	log.verbose("The cache path for " + opts.url + " is " + opts.path);
 
 	retrieve(opts, callback);
 }
@@ -128,13 +131,13 @@ let retrieve = module.exports.retrieve = function(opts, callback) {
 	// look for the file in cache. Otherwise call live.
 	fs.readFile(opts.path, { encoding: opts.encoding }, function(err, body) {
 		if (err) {
-			log.verbose("Couldn't find " + opts.headers.url + " in cache. (Looked for it at " + opts.path + ".) Calling live.");
+			log.verbose("Couldn't find " + opts.url + " in cache. (Looked for it at " + opts.path + ".) Calling live.");
 			queueDownload(opts, callback);
 		} else if (body.length === 0) {
-			log.verbose("Found an empty file in the cache for " + opts.headers.url + ". Calling live.");
+			log.verbose("Found an empty file in the cache for " + opts.url + ". Calling live.");
 			queueDownload(opts, callback);
 		} else {
-			log.verbose("loaded " + opts.headers.url + " from cache at " + opts.path);
+			log.verbose("loaded " + opts.url + " from cache at " + opts.path);
 
 			// we want to return an object as similar as possible to that which would have be retrieved live
 			let stats = fs.statSync(opts.path);
@@ -143,7 +146,7 @@ let retrieve = module.exports.retrieve = function(opts, callback) {
 					statusCode: "200",
 					statusMessage: "retrieved from cache",
 					path: opts.path,
-					url: opts.headers.url,
+					url: opts.url,
 					modified: stats.mtime
 				},
 				body, callback
@@ -165,14 +168,14 @@ let queueDownload = function(opts, callback) {
 let download = function(opts, callback) {
 	function requestCallback(err, resp, body) {
 		if (err) {
-			log.error("Error retrieving", opts.headers.url, ":", err);
+			log.error("Error retrieving", opts.url, ":", err);
 			log.error(err, resp, body);
 			return callback(err, null, null);
 		};
 
 		// make sure it's a valid response
 		if (resp.statusCode != 200) {
-			log.error("Did not cache", opts.headers.url, "because response code was", resp.statusCode);
+			log.error("Did not cache", opts.url, "because response code was", resp.statusCode);
 			return callback("Bad response code", resp, body);
 		}
 
@@ -197,7 +200,7 @@ let download = function(opts, callback) {
 
 		let response = {
 			response: resp,
-			url: opts.headers.url,
+			url: opts.url,
 			type: type,
 			sub_type: sub_type
 		}
@@ -216,7 +219,7 @@ let download = function(opts, callback) {
 			    	response.status = "error";
 			    	return callback(err, response, body);
 				}
-				log.verbose("Cached " + opts.headers.url + " at " + opts.path);
+				log.verbose("Cached " + opts.url + " at " + opts.path);
 		    	response.status = "retrieved live and cached";
 		    	response.path = opts.path;
 				toCallback(opts, response, body, callback);
@@ -261,10 +264,10 @@ let download = function(opts, callback) {
 		opts.headers.form = opts.post;
 		// opts.headers.gzip = false;
 
-		request.post(opts.headers, requestCallback);
+		request.post(opts, requestCallback);
 	} else {
 		// opts.headers.gzip = false;
-		request.get(opts.headers, requestCallback);
+		request.get(opts, requestCallback);
 	}
 };
 
