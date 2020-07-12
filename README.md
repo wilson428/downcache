@@ -1,6 +1,8 @@
 downcache
 =========
-v0.1.1
+v0.1.2
+
+*NOTE*: I am in the process of moving the dependency for `downcache` from `request` to a more modern alternative and implementing promises. Help is welcome!
 
 [![Build Status](https://travis-ci.org/wilson428/downcache.png)](https://travis-ci.org/wilson428/downcache)
 [![Dependency Status](https://david-dm.org/wilson428/downcache.svg)](https://david-dm.org/wilson428/downcache)
