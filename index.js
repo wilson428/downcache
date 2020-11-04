@@ -22,33 +22,7 @@ noindex: Don't add /index.html to paths when appropriate
 post: POST request
 */
 
-// initial options, which we can overwrite any time
-const global_options = {
-	dir: "./cache",
-	limit: 500,
-	log: "warn",
-	encoding: "utf-8",
-	force: false,
-	json: false,
-	noindex: false,
-	post: null
-};
-
-const global_headers = {
-	'Accept-Encoding': 'gzip, deflate, br'
-};
-
-const limiter = new RateLimiter(1, global_options.limit);
-
-const queueDownload = function(opts, callback) {
-	limiter.removeTokens(1, function(err, remainingRequests) {
-		if (err) {
-			log.info("rate limited " + opts.url);
-			return callback("rate limited");
-		}
-		download(opts, callback);
-	});
-}
+let limiter, opts, queueDownload;
 
 // create a filepath out of url, same as wget
 const url_to_path = module.exports.url_to_path = function(url, opts) {
@@ -84,7 +58,23 @@ module.exports = function() {
 		log.info("Response code:", resp.statusCode);
 	};
 
-	let opts = {};
+	// initial options, which we can overwrite any time
+	const default_options = {
+		dir: "./cache",
+		limit: 500,
+		log: "warn",
+		encoding: "utf-8",
+		force: false,
+		json: false,
+		noindex: false,
+		post: null
+	};
+
+	const default_headers = {
+		'Accept-Encoding': 'gzip, deflate, br'
+	};
+
+	opts = {};
 
 	Object.values(arguments).forEach(arg => {
 		if (typeof arg === "string") {
@@ -100,13 +90,25 @@ module.exports = function() {
 		}
 	});
 
-	opts = Object.assign(opts || {}, global_options);
+	opts = Object.assign(default_options, opts);
 
-	let headers = Object.assign(opts.headers || {}, global_headers);
+	let headers = Object.assign(default_headers, opts.headers || {});
 
 	opts.headers = headers;
 
 	log.level = opts.log;
+
+	limiter = new RateLimiter(1, opts.limit);
+
+	queueDownload = function(opts, callback) {
+		limiter.removeTokens(1, function(err, remainingRequests) {
+			if (err) {
+				log.info("rate limited " + opts.url);
+				return callback("rate limited");
+			}
+			download(opts, callback);
+		});
+	}
 
 	// copy `url` and `encoding` to the headers object
 	// if (!opts.url) {
@@ -129,13 +131,11 @@ module.exports = function() {
 
 	log.verbose("The cache path for " + opts.url + " is " + opts.path);
 
-	// download(opts);
-
 	retrieve(opts, callback);
 }
 
 
-let fireCallback = function(opts, resp, body, callback) {
+let fireCallback = function(opts, err, resp, body, callback) {
 	if (opts.json) {
 		try {
 			body = JSON.parse(body);
@@ -145,13 +145,13 @@ let fireCallback = function(opts, resp, body, callback) {
 			return;
 		}
 	}
-	callback(null, resp, body);
+	callback(err, resp, body);
 }
 
 // check if the file is in cache
 let retrieve = module.exports.retrieve = function(opts, callback) {
 	if (opts.force) {
-		download(opts, callback);
+		queueDownload(opts, callback);
 		return;
 	}
 
@@ -169,20 +169,23 @@ let retrieve = module.exports.retrieve = function(opts, callback) {
 			// we want to return an object as similar as possible to that which would have be retrieved live
 			let stats = fs.statSync(opts.path);
 			fireCallback(opts, 
+				null, // err
 				{
 					statusCode: "200",
 					statusMessage: "retrieved from cache",
 					path: opts.path,
 					url: opts.url,
 					modified: stats.mtime
-				},
+				}, // resp
 				body, callback
 			);
 		}
 	});
 };
 
-function download(opts) {
+function download(opts, callback) {
+	let resp;
+
 	if (opts.post) {
 		log.info("POST");
 		// opts.headers.gzip = false;
@@ -191,97 +194,60 @@ function download(opts) {
 
 		return fetch(opts.url, opts.post)
 			.then(res => {
-				if (opts.json) {
-					return res.json();
-				} else {
-					return res.text();
-				}
+				resp = res;
+				return res.text();
 			})
-			.then(body => savePage(body))
+			.then(body => {
+				savePage(opts, resp, body);
+				fireCallback(opts, null, resp, body, callback);
+			})
 			.catch(err => {
 				console.error('fetch failed', err);
+				fireCallback(opts, err, resp, null, callback);				
 			});
 	} else {
 		return fetch(opts.url)
 			.then(res => {
-				if (opts.json) {
-					return res.json();
-				} else {
-					return res.text();
-				}
+				resp = res;
+				return res.text();
 			})
-			.then(body => savePage(body));
+			.then(body => {
+				savePage(opts, resp, body);
+				fireCallback(opts, null, resp, body, callback);
+			})
+			.catch(err => {
+				console.error('fetch failed', err);
+				fireCallback(opts, err, resp, null, callback);				
+			});
 	}
 }
 
 // call the page live, store it, and send to callback 
-function savePage(err, resp, body) {
-	console.log(err);
-	console.log(resp);
-
-	return;
-
-	console.log(body);
-
-	if (err) {
-		log.error("Error retrieving", opts.url, ":", err);
-		log.error(err, resp, body);
-		return callback(err, null, null);
-	};
-
-	// make sure it's a valid response
-	if (resp.statusCode != 200) {
-		log.error("Did not cache", opts.url, "because response code was", resp.statusCode);
-		return callback("Bad response code", resp, body);
-	}
-
-	// we may want to change behavior based on the content type
-	let content_type = resp.headers['content-type'].toLowerCase().split("; ")[0],
-		type = content_type.split("/")[0],
-		sub_type = content_type.split("/")[1];
-
-	let response = {
-		response: resp,
-		url: opts.url,
-		type: type,
-		sub_type: sub_type
-	}
-
+function savePage(opts, resp, body) {
 	// store in local cache
-	mkdirp(path.dirname(opts.path), function (err) {
-	    if (err) {
-	    	response.status = "error";
-	    	log.warn("Downcache wasn't able to make a directory at", opts.path + ". This is probably because there's a file in the way. This can happen if `noindex` is set to true in the options.");
-	    	return callback(err, response, body);
-	    }
-
+	mkdirp(path.dirname(opts.path)).then(made => {
 		fs.writeFile(opts.path, body, function(err) {
 			if (err) {
 				log.error(err);
-		    	response.status = "error";
-		    	return callback(err, response, body);
+		    	log.warn("Downcache wasn't able to write a file at", opts.path + ". This is probably because there's a file in the way. This can happen if `noindex` is set to true in the options.");
+				return;				
 			}
 			log.verbose("Cached " + opts.url + " at " + opts.path);
-	    	response.status = "retrieved live and cached";
-	    	response.path = opts.path;
-			fireCallback(opts, response, body, callback);
 		});
+	}).catch(err => {
+		log.error(err);
+    	log.warn("Downcache wasn't able to create directory at", path.dirname(opts.path) + ". This is probably because the path is invalid based on the `dir` argument.");
 	});
-} // downloadPage
-
-
-
-
-
+} // savePage
 
 // update the global settings that get used in absense of a specification in the individual call
 module.exports.set = function(property, value) {
 	if (typeof property == "string" && typeof value == "string") {
-		global_options[property] = value;
+		opts[property] = value;
 	} else if (typeof property == "object") {
-		global_options = Object.assign(property, global_options);
+		opts = Object.assign(property, opts);
 	}
 	if (property == "limit" || property.limit) {
-		limiter = new RateLimiter(1, global_options.limit);
+		limiter = new RateLimiter(1, opts.limit);
 	}
 }

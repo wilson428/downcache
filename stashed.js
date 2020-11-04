@@ -14,6 +14,27 @@ let download_image = function(uri, filename, callback){
 	});
 };
 
+// make sure it's a valid response
+/*
+if (resp.statusCode != 200) {
+	log.error("Did not cache", opts.url, "because response code was", resp.statusCode);
+	return callback("Bad response code", resp, body);
+}
+*/
+
+// we may want to change behavior based on the content type
+// const content_type = resp.headers['content-type'][0].toLowerCase().split("; ")[0];
+// const type = content_type.split("/")[0];
+// const sub_type = content_type.split("/")[1];
+
+// let response = {
+// 	response: resp,
+// 	url: opts.url,
+// 	type: type,
+// 	sub_type: sub_type
+// }
+
+
 
 /*
 if (opts.image) {
