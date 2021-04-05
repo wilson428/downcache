@@ -2,6 +2,7 @@ const fs = require('graceful-fs');
 const path = require('path');
 const querystring = require("querystring");
 const fetch = require('node-fetch');
+const request = require('postman-request');
 const urlparse = require('url');
 const mkdirp = require('mkdirp');
 const log = require('npmlog');
@@ -22,7 +23,7 @@ noindex: Don't add /index.html to paths when appropriate
 post: POST request
 */
 
-let limiter, opts, queueDownload;
+let limiter, opts, queueDownload, download;
 
 // create a filepath out of url, same as wget
 const url_to_path = module.exports.url_to_path = function(url, opts) {
@@ -67,7 +68,8 @@ module.exports = function() {
 		force: false,
 		json: false,
 		noindex: false,
-		post: null
+		post: null,
+		useRequest: false
 	};
 
 	const default_headers = {
@@ -100,6 +102,12 @@ module.exports = function() {
 
 	limiter = new RateLimiter(1, opts.limit);
 
+	if (!opts.useRequest) {
+		download = downloadWithFetch;
+	} else {
+		download = downloadWithRequest;
+	}
+
 	queueDownload = function(opts, callback) {
 		limiter.removeTokens(1, function(err, remainingRequests) {
 			if (err) {
@@ -125,6 +133,11 @@ module.exports = function() {
 	// otherwise we will recreate the URL's path in the cache directory
 	if (!opts.path) {
 		opts.path = url_to_path(opts.url, opts);
+	}
+
+	// you can also specify a canonical url from which to construct the path -- usefull for scraperAPI, etc.
+	if (opts.pathFrom) {
+		opts.path = url_to_path(opts.pathFrom, opts);
 	}
 
 	opts.path = path.join(opts.dir, opts.path);
@@ -183,7 +196,54 @@ let retrieve = module.exports.retrieve = function(opts, callback) {
 	});
 };
 
-function download(opts, callback) {
+var downloadWithRequest = function(opts, callback) {
+	function requestCallback(err, resp, body) {
+		if (err) {
+			log.error("Error retrieving", opts.headers.url, ":", err);
+			log.error(err, resp, body);
+			return callback(err, null, null);
+		};
+
+		// make sure it's a valid response
+		if (resp.statusCode != 200) {
+			log.error("Did not cache", opts.url, "because response code was", resp.statusCode);
+			return callback("Bad response code", resp, body);
+		}
+
+		// we may want to change behavior based on the content type
+		var content_type = resp.headers['content-type'].toLowerCase().split("; ")[0],
+			type = content_type.split("/")[0],
+			sub_type = content_type.split("/")[1];
+
+		var response = {
+			response: resp,
+			url: opts.headers.url,
+			type: type,
+			sub_type: sub_type
+		}
+
+		savePage(opts, resp, body);
+		fireCallback(opts, null, resp, body, callback);
+	}
+
+	opts.headers.uri = opts.url;
+
+	if (!opts.headers.encoding) {
+		opts.headers.encoding = opts.encoding;
+	}
+
+	if (opts.post) {
+		log.info("POST");
+		opts.headers.form = opts.post;
+		// opts.headers.gzip = false;
+		request.post(opts.headers, requestCallback);
+	} else {
+		// opts.headers.gzip = false;
+		request.get(opts.headers, requestCallback);
+	}
+};
+
+function downloadWithFetch(opts, callback) {
 	let resp;
 
 	if (opts.post) {
