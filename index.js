@@ -1,13 +1,14 @@
-const fs = require('graceful-fs');
-const path = require('path');
-const querystring = require("querystring");
-const fetch = require('node-fetch');
-const request = require('postman-request');
-const urlparse = require('url');
-const mkdirp = require('mkdirp');
-const log = require('npmlog');
+import fs from 'graceful-fs';
+import path from 'path';
+import querystring from "querystring";
+import fetch from 'node-fetch';
+import request from 'postman-request';
+import urlparse from 'url';
+import mkdirp from 'mkdirp';
+import log from 'npmlog';
 
-const RateLimiter = require('limiter').RateLimiter;
+// import rl from 'limiter';
+// const RateLimiter = rl.RateLimiter;
 
 /* OPTIONS */
 /*
@@ -26,7 +27,7 @@ post: POST request
 let limiter, opts, queueDownload, download;
 
 // create a filepath out of url, same as wget
-const url_to_path = module.exports.url_to_path = function(url, opts) {
+const url_to_path = function(url, opts) {
 	let parsedUrl = urlparse.parse(url);
 	let p = path.join(parsedUrl.hostname, parsedUrl.path);
 	// exorcise any trailing "/"
@@ -51,7 +52,7 @@ const url_to_path = module.exports.url_to_path = function(url, opts) {
 // downcache("http://example.com", function(err, resp, body) {} )
 
 // we want to be flexible with the order of arguments since there are only three feasible types
-module.exports = function() {
+const Downcache = function() {
 	// this doesn't currently fire.
 	let callback = function(err, resp, body) {
 		log.info("This is the default downcache callback since you didn't provide one.");
@@ -100,7 +101,7 @@ module.exports = function() {
 
 	log.level = opts.log;
 
-	limiter = new RateLimiter(1, opts.limit);
+	// limiter = new RateLimiter(1, opts.limit);
 
 	if (!opts.useRequest) {
 		download = downloadWithFetch;
@@ -109,13 +110,14 @@ module.exports = function() {
 	}
 
 	queueDownload = function(opts, callback) {
-		limiter.removeTokens(1, function(err, remainingRequests) {
-			if (err) {
-				log.info("rate limited " + opts.url);
-				return callback("rate limited");
-			}
-			download(opts, callback);
-		});
+		// limiter.removeTokens(1, function(err, remainingRequests) {
+		// 	if (err) {
+		// 		log.info("rate limited " + opts.url);
+		// 		return callback("rate limited");
+		// 	}
+		// 	download(opts, callback);
+		// });
+		download(opts, callback);
 	}
 
 	// copy `url` and `encoding` to the headers object
@@ -162,7 +164,7 @@ let fireCallback = function(opts, err, resp, body, callback) {
 }
 
 // check if the file is in cache
-let retrieve = module.exports.retrieve = function(opts, callback) {
+let retrieve = function(opts, callback) {
 	if (opts.force) {
 		queueDownload(opts, callback);
 		return;
@@ -301,13 +303,15 @@ function savePage(opts, resp, body) {
 } // savePage
 
 // update the global settings that get used in absense of a specification in the individual call
-module.exports.set = function(property, value) {
+function SetProperty(property, value) {
 	if (typeof property == "string" && typeof value == "string") {
 		opts[property] = value;
 	} else if (typeof property == "object") {
 		opts = Object.assign(property, opts);
 	}
 	if (property == "limit" || property.limit) {
-		limiter = new RateLimiter(1, opts.limit);
+		// limiter = new RateLimiter(1, opts.limit);
 	}
 }
+
+export { Downcache, SetProperty };

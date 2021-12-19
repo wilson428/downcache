@@ -4,6 +4,7 @@
   "author": "Chris Wilson <christopher.e.wilson@gmail.com>",
   "description": "Download and cache webpages and write them to disk for fast future retrieval",
   "main": "index.js",
+  "type": "module",
   "repository": {
     "type": "git",
     "url": "https://github.com/wilson428/downcache"
@@ -15,13 +16,13 @@
     "test": "test/test.js"
   },
   "dependencies": {
-    "fetch-cookie": "^0.11.0",
-    "graceful-fs": "^4.2.4",
-    "limiter": "^1.1.5",
+    "fetch-cookie": "^1.0.0",
+    "graceful-fs": "^4.2.8",
+    "limiter": "^2.1.0",
     "mkdirp": "^1.0.4",
-    "node-fetch": "^2.6.1",
-    "npmlog": "^4.1.2",
-    "postman-request": "^2.88.1-postman.29",
+    "node-fetch": "^3.1.0",
+    "npmlog": "^6.0.0",
+    "postman-request": "^2.88.1-postman.30",
     "request": "^2.88.2"
   },
   "devDependencies": {
